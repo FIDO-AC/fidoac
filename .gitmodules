@@ -1,0 +1,3 @@
+[submodule "subprojects/libsnark-android-prebuilt-example"]
+	path = subprojects/libsnark-android-prebuilt-example
+	url = git@github.com:Wabo0/libsnark-android-prebuilt-example.git

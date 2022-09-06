@@ -1,5 +1,11 @@
 name: FIDOAC Server Build and Deploy
 on: [workflow_dispatch]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./fidoac_server
+
 jobs:
   run-action:
     name: Run action
@@ -17,18 +23,13 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        with:
-          working-directory: ./fidoac_server
 
       - name: Build
         run: npm run build
-        with:
-          working-directory: ./fidoac_server
 
       - name: Copy dist via ssh
         uses: appleboy/scp-action@master
         with:
-            working-directory: ./fidoac_server
             host: fido.westeurope.cloudapp.azure.com
             username: azureuser
             port: 22

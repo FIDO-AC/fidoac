@@ -1,0 +1,37 @@
+name: FIDOAC Server Build and Deploy
+on: [workflow_dispatch]
+jobs:
+  run-action:
+    name: Run action
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        working-directory: ./fidoac_server
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v2
+        working-directory: ./fidoac_server
+        with:
+          node-version: 16.x
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./fidoac_server
+        run: npm install
+
+      - name: Build
+        working-directory: ./fidoac_server
+        run: npm run build
+
+      - name: Copy dist via ssh
+        working-directory: ./fidoac_server
+        uses: appleboy/scp-action@master
+        with:
+            host: fido.westeurope.cloudapp.azure.com
+            username: azureuser
+            port: 22
+            key: ${{ secrets.KEY }}
+            source: "dist"
+            target: "app"

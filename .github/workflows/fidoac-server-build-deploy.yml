@@ -7,28 +7,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-        working-directory: ./fidoac_server
 
       - name: Use Node.js 16.x
         uses: actions/setup-node@v2
-        working-directory: ./fidoac_server
         with:
           node-version: 16.x
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: ./fidoac_server
         run: npm install
+        with:
+          working-directory: ./fidoac_server
 
       - name: Build
-        working-directory: ./fidoac_server
         run: npm run build
+        with:
+          working-directory: ./fidoac_server
 
       - name: Copy dist via ssh
-        working-directory: ./fidoac_server
         uses: appleboy/scp-action@master
         with:
+            working-directory: ./fidoac_server
             host: fido.westeurope.cloudapp.azure.com
             username: azureuser
             port: 22

@@ -225,9 +225,10 @@ app.post('/generate-authentication-options', (req, res) => {
   if(req.body.challengeLength){
     options.challenge = base64url.encode(crypto.randomBytes(req.body.challengeLength))
   }
-
-  (<any>options.extensions) = {
-    fidoac: true
+  if(req.body.enableFidoACExtension) {
+    (<any>options.extensions) = {
+      fidoac: true
+    }
   }
 
   /**

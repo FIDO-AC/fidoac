@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.es5.umd.min.js"></script>
+    <script src="fido-ac.js"></script>
+    <script>
+      FidoAC.init({
+        url:"https://localhost:8080",
+        mockFidoAc: true
+      })
+    </script>
     <script>
       const { browserSupportsWebAuthn } = SimpleWebAuthnBrowser;
 
@@ -201,6 +208,12 @@
               <input type="password" name="password" autocomplete="webauthn">
               <br>
             </section>
+            <label for="fidoACextension">Enable FIDO AC extension</label>
+            <input name="fidoACextension" type="checkbox" id="fidoACextension" checked />
+            <br>
+            <label for="fidoACMock">Mock FIDO AC service</label>
+            <input name="fidoACMock" type="checkbox" id="fidoACMock" checked />
+            <br>
             <label for="challengeLength">Challenge length (bytes)</label>
             <input id="challengeLength" name="challengeLength" value="32">
             <button id="btnAuthBegin">
@@ -329,6 +342,11 @@
           const elemError = document.querySelector('#authError');
           const elemDebug = document.querySelector('#authDebug');
           const elemChallengeLength = document.querySelector('#challengeLength')
+          const elemfidoACextension = document.querySelector('#fidoACextension')
+          const fidoACMock = document.querySelector('#fidoACMock')
+          FidoAC.configure({
+            mockFidoAc: fidoACMock.checked
+          })
 
           // Reset success/error messages
           elemSuccess.innerHTML = '';
@@ -336,7 +354,8 @@
           elemDebug.innerHTML = '';
 
           const requestOptions = {
-            challengeLength: parseInt(elemChallengeLength.value)
+            challengeLength: parseInt(elemChallengeLength.value),
+            enableFidoACExtension: elemfidoACextension.checked
           }
 
           const resp = await fetch('/generate-authentication-options',getAuthnReqFetchRequest(requestOptions));
@@ -377,6 +396,6 @@
       }
 
     </script>
-  <script src="fido-ac.js"></script>
+
   </body>
 </html>

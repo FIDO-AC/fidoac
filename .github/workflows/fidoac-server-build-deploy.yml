@@ -36,3 +36,4 @@ jobs:
             key: ${{ secrets.SSH_SK }}
             source: "./fidoac_server/dist"
             target: "app"
+            strip_components: 2

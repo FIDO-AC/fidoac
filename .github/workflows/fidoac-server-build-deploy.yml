@@ -34,5 +34,5 @@ jobs:
             username: azureuser
             port: 22
             key: ${{ secrets.SSH_SK }}
-            source: "dist"
+            source: "./fidoac_server/dist"
             target: "app"

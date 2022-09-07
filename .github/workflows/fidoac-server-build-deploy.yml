@@ -33,6 +33,6 @@ jobs:
             host: fido.westeurope.cloudapp.azure.com
             username: azureuser
             port: 22
-            key: ${{ secrets.KEY }}
+            key: ${{ secrets.SSH_SK }}
             source: "dist"
             target: "app"

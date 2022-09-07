@@ -25,7 +25,7 @@ jobs:
         run: npm install
 
       - name: Build
-        run: npm run build
+        run: npm run build && npm run postbuild
 
       - name: Copy dist via ssh
         uses: appleboy/scp-action@master
@@ -37,3 +37,12 @@ jobs:
             source: "./fidoac_server/dist"
             target: "app"
             strip_components: 2
+
+      - name: Restart server
+        uses: appleboy/ssh-action@master
+        with:
+          host: fido.westeurope.cloudapp.azure.com
+          username: azureuser
+          key: ${{ secrets.SSH_SK }}
+          port: 22
+          script: cd app && cp *.crt *.key .env dist/ && cd dist && npm install

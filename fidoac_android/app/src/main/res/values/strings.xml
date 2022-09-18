@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">FIDO-AC</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="Scan_fragment_text">Scan</string>
+    <string name="Data_fragment_text">Data</string>
+    <string name="Tutorial_fragment_text">Tutorial</string>
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="hello_tutorial_fragment">Hello tutorial fragment</string>
+
+    <string name="prescanning">Read the details and press Confirm to begin the process.</string>
+    <string name="scanning">Please put your phone on top of the document.</string>
+    <string name="postscanning">Completed. Redirecting back to browser.</string>
+    <string name="reject_underline"><u>Cancel and downgrade to FIDO</u></string>
+</resources>

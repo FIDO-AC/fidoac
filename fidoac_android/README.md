@@ -1,5 +1,7 @@
 UI - Basically done.
 BAC - Added downgrade to BAC.
+Does not use intent for NFC.
+USe Live NFC reader.
 
 WIP.
 PACE - Chip Authentication not yet linked.

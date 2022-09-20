@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="30dp"
+    tools:context=".ScanFragment">
+
+    <!-- TODO: Update blank fragment layout -->
+    <TextView
+        android:id="@+id/instruction_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome to FIDO-AC. Waiting for request." />
+
+    <ImageView
+        android:id="@+id/scanImageView"
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        android:layout_weight="1"
+        android:src="@mipmap/ic_launcher"
+        app:srcCompat="@drawable/ic_launcher_foreground_maincolor" />
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textview_information"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="20dp"
+                android:text="Origin:" />
+
+            <TextView
+                android:id="@+id/textview_origin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="20dp"
+                android:text="None" />
+
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="20dp"
+                android:text="Requesting:" />
+
+            <TextView
+                android:id="@+id/textview_request"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="20dp"
+                android:text="None" />
+
+        </TableRow>
+
+    </TableLayout>
+
+    <Button
+        android:id="@+id/scanbutton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="0"
+        android:gravity="center"
+        android:text="Start Scanning"
+        android:visibility="gone" />
+
+    <com.apachat.loadingbutton.core.customViews.CircularProgressButton
+        android:id="@+id/animatedscan_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_button"
+        android:text="Confirm"
+        android:textColor="@color/white"
+        app:spinning_bar_color="#FFF"
+        app:spinning_bar_padding="6dp"
+        app:initialCornerAngle="50dp"
+        app:spinning_bar_width="4dp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:backgroundTint="#E8E8E8"
+        android:padding="15dp"
+        android:textAlignment="inherit">
+
+        <TextView
+            android:id="@+id/reject_btn_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/reject_underline"
+            android:textAlignment="center"
+            android:textColor="@color/teal_700" />
+    </FrameLayout>
+
+
+</LinearLayout>

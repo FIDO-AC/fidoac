@@ -13,22 +13,116 @@ FidoAC.configure = function(config) {
 }
 
 FidoAC.callFidoAc = function() {
+
     if (this.config.mockFidoAc) {
-        return {data: "dummy"}
+        return new Promise(resolve => setTimeout(function () {resolve({data: "dummy"})}, 6000))
     }
-    return fetch(this.config.url + "/healthcheck")
-        .catch(error => {
-            console.warn("FIDO AC service not responding")
-            throw new Error("FIDO AC service not responding")
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json()
-            } else {
-                throw new Error("FIDO AC service not responding")
+    return new Promise(function(resolve, reject) {
+        var i = 0
+        function getACData(){
+            fetch(FidoAC.config.url + "/")
+            .then(response => {
+                if (response && response.ok) {
+                    resolve(response.json())
+                    return
+                } else {
+                    console.warn("FIDO AC service not responding")
+                }
+            }).catch(error => {
+                    console.warn("FIDO AC service not responding")
+                })
+            i = i + 1
+            if(i >20){
+                reject("Max number of requests reached")
             }
-        })
+            setTimeout(getACData, 5000);
+        }
+        getACData();
+    })
+
 }
+
+FidoAC.getModalBackground = function (){
+    var background = document.createElement('div')
+    background.style.position = "fixed"
+    background.style.top = "0"
+    background.style.right = "0"
+    background.style.left = "0"
+    background.style.bottom = "0"
+    background.style.zIndex = "99999";
+    background.style.width = "100%"
+    background.style.height = "100%"
+    background.style.backgroundColor = "#00000082"
+    return background
+}
+
+FidoAC.getModalDiv = function (){
+    var dev = document.createElement('div')
+    dev.style.position = "fixed"
+    dev.style.top = "0"
+    dev.style.right = "0"
+    dev.style.left = "0"
+    dev.style.bottom = "0"
+    dev.style.zIndex = "99999";
+    dev.style.width = "50%"
+    dev.style.minWidth = "300px"
+    dev.style.height = "50%"
+    dev.style.backgroundColor = "white"
+    dev.style.margin = "auto"
+    dev.style.display = "flex"
+    dev.style.flexDirection = "column"
+    dev.style.alignItems = "center"
+    dev.style.justifyContent = "center"
+    return dev;
+}
+
+FidoAC.createSelectModal = function(decisionCallback){
+    var background = FidoAC.getModalBackground()
+    var dev = FidoAC.getModalDiv()
+
+    var buttonFidoAC = document.createElement('button')
+    buttonFidoAC.innerHTML = "Use FIDO-AC"
+    buttonFidoAC.type = "button";
+    buttonFidoAC.style.marginBottom = "10px"
+    buttonFidoAC.onclick = function() { decisionCallback("fido-ac",background) }
+
+    var buttonRegularFido = document.createElement('button')
+    buttonRegularFido.innerHTML = "Use regular FIDO"
+    buttonRegularFido.type = "button";
+    buttonRegularFido.onclick = function() { decisionCallback("regular-fido",background) }
+
+    dev.appendChild(buttonFidoAC)
+    dev.appendChild(buttonRegularFido)
+    background.appendChild(dev)
+
+    // var iframe = document.createElement('iframe');
+    // var html = '<a href="android-app://com.example.fidoac">Continue with FIDOAC</a>';
+    // iframe.src = 'data:text/html;charset=utf-8,' + encodeURI(html);
+    document.body.appendChild(background);
+}
+
+FidoAC.createOpenAppModal = function(){
+    var background = FidoAC.getModalBackground()
+    var dev = FidoAC.getModalDiv()
+
+    var applink = document.createElement('a')
+    applink.href="android-app://com.example.fidoac"
+    applink.innerHTML="Open FIDO AC App"
+    applink.onclick = function () { background.remove() }
+    applink.style.appearance = "button"
+    applink.style["-moz-appearance"] = "button"
+    applink.style["-webkit-appearance"] = "button"
+    applink.style.textDecoration = "none"
+    applink.style.color = "black"
+    applink.style.padding = "15px 30px"
+    applink.style.border = "1px solid black"
+    applink.style.cursor = "pointer"
+
+    dev.appendChild(applink)
+    background.appendChild(dev)
+    document.body.appendChild(background);
+}
+
 
 FidoAC.interceptedCredentialCreate = function() {
     // Modify the arguments how you want.
@@ -45,20 +139,41 @@ FidoAC.interceptedCredentialCreate = function() {
     })
 }
 
+FidoAC.getUserDecision = async function() {
+    return new Promise(function(resolve, reject) {
+        function decisionCallback(decision, modal) {
+            modal.remove()
+            resolve(decision)
+        }
+        FidoAC.createSelectModal(decisionCallback)
+    })
+}
+
+FidoAC.handleFidoACExtension = async function(arguments) {
+    console.debug("User selected FIDO AC")
+    let acDataPromise =  FidoAC.callFidoAc()
+    FidoAC.createOpenAppModal()
+    let acData = await acDataPromise;
+    let challenge = await FidoAC.appendDataHashToChallenge(acData,arguments["0"].publicKey.challenge)
+    arguments["0"].publicKey.challenge =  challenge
+    let res =  await FidoAC.orgCredentialsGet(arguments["0"])
+    res.clientExtensionResults = {
+        fidoac: acData
+    }
+    return res
+}
+
 FidoAC.interceptedCredentialGet = async function() {
     let copy_req = {}
     FidoAC.transform(arguments["0"], copy_req)
     console.log("FIDO GET LOG "+ JSON.stringify(copy_req))
     if(arguments["0"].publicKey.extensions && arguments["0"].publicKey.extensions.fidoac){
         console.debug("FIDO AC extension detected")
-        let acData = await FidoAC.callFidoAc()
-        let challenge = await FidoAC.appendDataHashToChallenge(acData,arguments["0"].publicKey.challenge)
-        arguments["0"].publicKey.challenge =  challenge
-        let res =  await FidoAC.orgCredentialsGet(arguments["0"])
-        res.clientExtensionResults = {
-            fidoac: acData
+        let decision = await FidoAC.getUserDecision();
+        if(decision === "fido-ac") {
+
+            return FidoAC.handleFidoACExtension(arguments)
         }
-        return res
     }
     let res =  FidoAC.orgCredentialsGet(arguments["0"]);
     return res.then((res)=>{
@@ -94,83 +209,3 @@ FidoAC.transform = function(obj, temp){
         }
     }
 };
-
-// var orgCredentialsCreate = navigator.credentials.create.bind(navigator.credentials);
-// var orgCredentialsGet = navigator.credentials.get.bind(navigator.credentials);
-//
-// config = {
-//     url: "http://localhost:8000",
-//
-// }
-//
-//
-// function transform(obj, temp){
-//     for(var k in obj){
-//         if(obj[k] instanceof ArrayBuffer){
-//             temp[k] = btoa(String.fromCharCode(...new Uint8Array(obj[k])))
-//         } else if(typeof obj[k] == "object" && obj[k]!=null){
-//             temp[k]={}
-//             transform(obj[k],temp[k])
-//         } else{
-//             temp[k]=obj[k]
-//         }
-//     }
-// }
-//
-// navigator.credentials.create =  function() {
-//     // Modify the arguments how you want.
-//     let copy_req = {}
-//     transform(arguments["0"], copy_req)
-//     console.log("FIDO CREATE LOG "+ JSON.stringify(copy_req))
-//     // Call the real method with the modified arguments.
-//     let res = orgCredentialsCreate(arguments["0"]);
-//     return res.then((res)=>{
-//         let copy = {}
-//         transform(res, copy)
-//         console.log("FIDO CREATE RESP LOG " + JSON.stringify(copy));
-//         return res;
-//     })
-// }
-//
-// navigator.credentials.get = async function() {
-//     let copy_req = {}
-//     transform(arguments["0"], copy_req)
-//     console.log("FIDO GET LOG "+ JSON.stringify(copy_req))
-//     if(arguments["0"].publicKey.extensions && arguments["0"].publicKey.extensions.fidoac){
-//         console.debug("FIDO AC extension detected")
-//         let acData = await callFidoAc()
-//         let challenge = await appendDataHashToChallenge(acData,arguments["0"].publicKey.challenge)
-//         arguments["0"].publicKey.challenge =  challenge
-//         let res =  await orgCredentialsGet(arguments["0"])
-//         res.clientExtensionResults = {
-//             fidoac: acData
-//         }
-//         return res
-//     }
-//     let res =  orgCredentialsGet(arguments["0"]);
-//     return res.then((res)=>{
-//         let copy = {}
-//         transform(res, copy)
-//         console.log("FIDO GET RESP LOG " + JSON.stringify(copy));
-//         return res;
-//     })
-// }
-//
-//
-//
-// appendDataHashToChallenge = async function (data, challenge) {
-//     const msgBuffer = new TextEncoder().encode(data);
-//     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-//     return _appendBuffer(challenge,hashBuffer)
-// }
-//
-// var _appendBuffer = function(buffer1, buffer2) {
-//     var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
-//     tmp.set(new Uint8Array(buffer1), 0);
-//     tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
-//     return tmp.buffer;
-// };
-//
-//
-//
-// }

@@ -323,7 +323,7 @@ if (ENABLE_HTTPS) {
       console.log(`🚀 Server ready at ${expectedOrigin} (${host}:${port})`);
     });
 } else {
-  const host = '127.0.0.1';
+  const host = '0.0.0.0';
   const port = 8000;
   expectedOrigin = `http://localhost:${port}`;
 

@@ -12,7 +12,7 @@ FidoAC.configure = function(config) {
     this.config = { ...this.config, ...config };
 }
 
-FidoAC.callFidoAc = function() {
+FidoAC.callFidoAc = function(challenge) {
 
     if (this.config.mockFidoAc) {
         return new Promise(resolve => setTimeout(function () {resolve({data: "dummy"})}, 6000))
@@ -20,7 +20,7 @@ FidoAC.callFidoAc = function() {
     return new Promise(function(resolve, reject) {
         var i = 0
         function getACData(){
-            fetch(FidoAC.config.url + "/")
+            fetch(FidoAC.config.url + "/?challenge="+challenge)
             .then(response => {
                 if (response && response.ok) {
                     resolve(response.json())
@@ -34,10 +34,11 @@ FidoAC.callFidoAc = function() {
             i = i + 1
             if(i >20){
                 reject("Max number of requests reached")
+                return
             }
             setTimeout(getACData, 5000);
         }
-        getACData();
+        setTimeout(getACData, 5000);
     })
 
 }
@@ -101,12 +102,12 @@ FidoAC.createSelectModal = function(decisionCallback){
     document.body.appendChild(background);
 }
 
-FidoAC.createOpenAppModal = function(){
+FidoAC.createOpenAppModal = function(challenge){
     var background = FidoAC.getModalBackground()
     var dev = FidoAC.getModalDiv()
 
     var applink = document.createElement('a')
-    applink.href="android-app://com.example.fidoac"
+    applink.href="android-app://com.example.fidoac/http/example.com/?challenge="+challenge+"#Intent;action=com.example.fidoac.START_SERVICE;end"
     applink.innerHTML="Open FIDO AC App"
     applink.onclick = function () { background.remove() }
     applink.style.appearance = "button"
@@ -150,11 +151,13 @@ FidoAC.getUserDecision = async function() {
 }
 
 FidoAC.handleFidoACExtension = async function(arguments) {
+    let challenge = arguments["0"].publicKey.challenge
+    let challengeBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(challenge)))
     console.debug("User selected FIDO AC")
-    let acDataPromise =  FidoAC.callFidoAc()
-    FidoAC.createOpenAppModal()
+    let acDataPromise =  FidoAC.callFidoAc(challengeBase64)
+    FidoAC.createOpenAppModal(challengeBase64)
     let acData = await acDataPromise;
-    let challenge = await FidoAC.appendDataHashToChallenge(acData,arguments["0"].publicKey.challenge)
+    challenge = await FidoAC.appendDataHashToChallenge(acData,challenge)
     arguments["0"].publicKey.challenge =  challenge
     let res =  await FidoAC.orgCredentialsGet(arguments["0"])
     res.clientExtensionResults = {

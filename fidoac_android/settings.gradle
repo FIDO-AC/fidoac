@@ -10,6 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url "https://nexus.coppernic.fr/repository/libs-release" }
     }
 }
 rootProject.name = "fidoac"

@@ -2,6 +2,7 @@ package anon.fidoac
 
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -11,6 +12,9 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView.OnEditorActionListener
 import android.widget.Toast
+import androidx.camera.view.PreviewView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import anon.fidoac.databinding.FragmentDataBinding
 import com.google.android.material.datepicker.CalendarConstraints
@@ -44,6 +48,7 @@ class DataFragment : Fragment() {
 
     //Navigate back to when complete
     private lateinit var mtab_layout:TabLayout
+    private lateinit var cameraOCR:DataOCR
 
     private val displayDF = "dd/MM/yyyy"
     private val displayDFFormatter = SimpleDateFormat(displayDF)
@@ -178,6 +183,21 @@ class DataFragment : Fragment() {
             }
         })
 
+        cameraOCR = DataOCR(this.requireActivity(), binding.previewView as PreviewView, this.requireActivity(),
+            this::onSuccesfullyScan
+            )
+        binding.cameraBtn.setOnClickListener {
+            if (allPermissionsGranted()) {
+                cameraOCR.startCamera()
+            } else {
+                ActivityCompat.requestPermissions(
+                    this.requireActivity(),
+                    REQUIRED_PERMISSIONS,
+                    REQUEST_CODE_PERMISSIONS
+                )
+            }
+        }
+
         //Load Data from Storage on Startup
         val sharedPref = activity?.getSharedPreferences("Data", Context.MODE_PRIVATE)
         sharedPref?.let {
@@ -187,6 +207,11 @@ class DataFragment : Fragment() {
         }
 
         return view
+    }
+    private fun onSuccesfullyScan( documentNumber:String, expiryDate:Date?, birthDate:Date?) {
+        this.passportnum_pretty = documentNumber
+        this.dob_pretty = displayDFFormatter.format((birthDate))
+        this.expdate_pretty = displayDFFormatter.format(expiryDate)
     }
 
     fun setTabLayout(tabLayout: TabLayout){
@@ -284,7 +309,17 @@ class DataFragment : Fragment() {
         //        }
     }
 
+
+    private fun allPermissionsGranted() =
+        REQUIRED_PERMISSIONS.all {
+            ContextCompat.checkSelfPermission(this.requireContext(), it) == PackageManager.PERMISSION_GRANTED
+    }
     companion object {
+        private const val REQUEST_CODE_PERMISSIONS = 10
+        private val REQUIRED_PERMISSIONS = arrayOf(
+            android.Manifest.permission.CAMERA
+        )
+
         /**
          * Use this factory method to create a new instance of
          * this fragment using the provided parameters.

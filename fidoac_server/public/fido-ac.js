@@ -1,7 +1,10 @@
 var FidoAC = {}
 
 FidoAC.init = function(config){
-    this.config = config;
+    this.defaultConfig = {
+        appid: "anon.fidoac"
+    }
+    this.config = {...this.defaultConfig, ...config};
     this.orgCredentialsCreate = navigator.credentials.create.bind(navigator.credentials);
     this.orgCredentialsGet = navigator.credentials.get.bind(navigator.credentials);
     navigator.credentials.create = this.interceptedCredentialCreate;
@@ -10,6 +13,10 @@ FidoAC.init = function(config){
 
 FidoAC.configure = function(config) {
     this.config = { ...this.config, ...config };
+}
+
+FidoAC.getDeepLink = function (appid, challenge){
+    return `android-app://${appid}/http/example.com/?challenge=${challenge}#Intent;action=${appid}.START_SERVICE;end`
 }
 
 FidoAC.callFidoAc = function(challenge) {
@@ -107,7 +114,8 @@ FidoAC.createOpenAppModal = function(challenge){
     var dev = FidoAC.getModalDiv()
 
     var applink = document.createElement('a')
-    applink.href="android-app://com.example.fidoac/http/example.com/?challenge="+challenge+"#Intent;action=com.example.fidoac.START_SERVICE;end"
+    // applink.href="android-app://com.example.fidoac/http/example.com/?challenge="+challenge+"#Intent;action=com.example.fidoac.START_SERVICE;end"
+    applink.href=FidoAC.getDeepLink(this.config.appid,challenge)
     applink.innerHTML="Open FIDO AC App"
     applink.onclick = function () { background.remove() }
     applink.style.appearance = "button"

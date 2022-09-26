@@ -39,19 +39,28 @@
                 android:resource="@xml/nfc_tech_list" />
         </activity>
 
-        <activity android:name=".service.FIDOACActivity" android:exported="true">
-            <intent-filter>
-                <action android:name="anon.fidoac.START_SERVICE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.BROWSABLE" />
+<!--        <activity android:name=".service.FIDOACActivity" android:exported="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="anon.fidoac.START_SERVICE" />-->
+<!--                <category android:name="android.intent.category.DEFAULT" />-->
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--                <category android:name="android.intent.category.BROWSABLE" />-->
 
-                <data
-                    android:host="example.com"
-                    android:scheme="http"/>
+<!--                <data-->
+<!--                    android:host="example.com"-->
+<!--                    android:scheme="http"/>-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
+
+        <activity android:name=".service.FIDOACActivity" android:exported="true" android:autoVerify="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <action android:name="anon.fidoac.START_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:host="fidoacsource.z13.web.core.windows.net" android:scheme="https"/>
             </intent-filter>
         </activity>
-
         <service android:name=".service.FIDOACService"/>
     </application>
 

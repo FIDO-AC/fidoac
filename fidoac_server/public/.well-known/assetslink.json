@@ -1,3 +1,8 @@
-{
-  "dummy": ""
-}
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "anon.fidoac",
+    "sha256_cert_fingerprints": ["51:31:0B:CB:D8:EF:EB:89:13:F3:EF:4E:65:C9:B3:0C:D9:ED:6C:01:16:A0:8D:13:7B:BF:B6:B3:E2:C0:A8:4D"]
+  }
+}]

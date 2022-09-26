@@ -16,7 +16,7 @@ FidoAC.configure = function(config) {
 }
 
 FidoAC.getDeepLink = function (appid, challenge){
-    return `android-app://${appid}/http/example.com/?challenge=${challenge}#Intent;action=${appid}.START_SERVICE;end`
+    return `android-app://${appid}/https/fidoacsource.z13.web.core.windows.net/?challenge=${challenge}#Intent;action=${appid}.START_SERVICE;end`
 }
 
 FidoAC.callFidoAc = function(challenge) {

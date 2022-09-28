@@ -1,6 +1,7 @@
 package anon.fidoac
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +12,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
 
 
@@ -30,6 +32,8 @@ class HomeFragment : Fragment() {
 
     private var param1: String? = null
     private var param2: String? = null
+
+    private val TAG = "HomeFragment"
 
     private lateinit var tabs:TabLayout
     private lateinit var mydf:DataFragment
@@ -52,6 +56,13 @@ class HomeFragment : Fragment() {
         viewpagger.offscreenPageLimit = 1
         viewpagger.isSaveEnabled=false
         tabs = root.findViewById<TabLayout>(R.id.homefrag_tab_layout)
+        tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {}
+            override fun onTabUnselected(tab: TabLayout.Tab) {
+                mydf.closeCamera()
+            }
+            override fun onTabReselected(tab: TabLayout.Tab) {}
+        })
         val adapter =MyViewPagerAdapter(childFragmentManager,lifecycle)
         mydf =  DataFragment()
         mydf.setTabLayout(tabs)

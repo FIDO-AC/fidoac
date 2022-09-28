@@ -6,27 +6,39 @@ import android.content.Context
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.preference.PreferenceManager
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.util.Log
-import net.sf.scuba.smartcards.CardFileInputStream
 import net.sf.scuba.smartcards.CardService
 import net.sf.scuba.smartcards.CardServiceException
-import net.sf.scuba.smartcards.ISO7816
+import net.sf.scuba.smartcards.CommandAPDU
+import net.sf.scuba.smartcards.ResponseAPDU
+import org.bouncycastle.asn1.ASN1InputStream
+import org.bouncycastle.asn1.ASN1Primitive
+import org.bouncycastle.asn1.ASN1Sequence
+import org.bouncycastle.asn1.ASN1Set
 import org.jmrtd.BACKey
 import org.jmrtd.PACEKeySpec
 import org.jmrtd.PassportService
-import org.jmrtd.PassportService.DEFAULT_MAX_BLOCKSIZE
-import org.jmrtd.PassportService.NORMAL_MAX_TRANCEIVE_LENGTH
-import org.jmrtd.lds.CardAccessFile
-import org.jmrtd.lds.PACEInfo
-import org.jmrtd.lds.SODFile
-import org.jmrtd.lds.SecurityInfo
+import org.jmrtd.lds.*
 import org.jmrtd.lds.icao.DG14File
 import org.jmrtd.lds.icao.DG1File
-import org.jmrtd.lds.icao.DG2File
+import org.jmrtd.protocol.EACCAAPDUSender
+import org.jmrtd.protocol.EACCAProtocol
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.IOException
+import java.math.BigInteger
+import java.security.KeyPairGenerator
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.PublicKey
+import java.security.cert.Certificate
+import java.security.cert.X509Certificate
+import java.security.interfaces.ECPublicKey
+import java.security.spec.AlgorithmParameterSpec
 import java.util.*
+import javax.crypto.interfaces.DHPublicKey
 
 
 /**
@@ -34,19 +46,22 @@ import java.util.*
  */
 abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) {
     private val TAG = this.javaClass.simpleName
+    private val KEYSTORE_ALIAS = "anon.fidoac"
+
     var passportService: PassportService
 
     //Workflow from https://github.com/tananaev/passport-reader/blob/master/app/src/main/java/com/tananaev/passportreader/MainActivity.java
     fun runToReadDG1(bacKey:BACKey): Unit? {
+        var paceSucceeded = false
         try {
             if (false){
-                var paceSucceeded = false
+
                 try {
                     val cardAccessFile:CardAccessFile = CardAccessFile(passportService.getInputStream(PassportService.EF_CARD_ACCESS))
                     for (securityInfo: SecurityInfo in cardAccessFile.securityInfos) {
                         if (securityInfo is PACEInfo) {
                             val paceInfo:PACEInfo = securityInfo
-                            passportService.doPACE(bacKey, paceInfo.getObjectIdentifier(), PACEInfo.toParameterSpec(paceInfo.getParameterId()), null);
+                            passportService.doPACE(this.stateBasket.paceKey, paceInfo.getObjectIdentifier(), PACEInfo.toParameterSpec(paceInfo.getParameterId()), null);
                             paceSucceeded = true;
                         }
                     }
@@ -75,27 +90,129 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
             Log.d(TAG,"Reading DG1")
             val dg1File = readDG1File(stateBasket.context)
             Log.d(TAG,dg1File.toString())
-
-            //            var dg1In:CardFileInputStream = passportService.getInputStream(PassportService.EF_DG1);
-//            val dg1File = DG1File(dg1In)
-//            Log.d(TAG,dg1File.toString())
-//            val dg2In: CardFileInputStream = passportService.getInputStream(PassportService.EF_DG2);
-//            val dg2File = DG2File(dg2In);
-//            Log.d(TAG,dg2File.toString())
-//            val sodIn: CardFileInputStream = passportService.getInputStream(PassportService.EF_SOD);
-//            val sodFile = SODFile(sodIn);
-//            Log.d(TAG,sodFile.toString())
+            Log.d(TAG,"Reading DG14")
+            val dg14File = readDG14File(stateBasket.context)
+            Log.d(TAG,dg14File.toString())
+            Log.d(TAG,"Reading SOD")
+            val sodFile = readDG14File(stateBasket.context)
+            Log.d(TAG,sodFile.toString())
 
 //            // We perform Chip Authentication using Data Group 14
-//            doChipAuth(service);
+            if (paceSucceeded)
+                dg14File?.let { doChipAuth(passportService, it) };
 //            // Then Passive Authentication using SODFile
 //            doPassiveAuth();
-
         } catch (e: Exception) {
             Log.w(TAG, e);
 
         }
         return null;
+    }
+    private fun doChipAuth(service: PassportService, dg14File :DG14File) {
+        try {
+            val dg14FileSecurityInfos: Collection<SecurityInfo> = dg14File.getSecurityInfos()
+            for (securityInfo in dg14FileSecurityInfos) {
+                if (securityInfo is ChipAuthenticationPublicKeyInfo) {
+                    val publicKeyInfo = securityInfo
+                    val keyId: BigInteger = publicKeyInfo.keyId
+                    val publicKey: PublicKey = publicKeyInfo.subjectPublicKey
+                    val oid = publicKeyInfo.objectIdentifier
+                    //This will do CA with random key.
+//                    service.doEACCA(
+//                        keyId,
+//                        ChipAuthenticationPublicKeyInfo.ID_CA_ECDH_AES_CBC_CMAC_256,
+//                        oid,
+//                        publicKey
+//                    )
+                    try {
+                        val agreementAlg = ChipAuthenticationInfo.toKeyAgreementAlgorithm(oid)
+                        var params: AlgorithmParameterSpec? = null
+                        if ("DH" == agreementAlg) {
+                            val piccDHPublicKey = publicKey as DHPublicKey
+                            params = piccDHPublicKey.params
+                        } else if ("ECDH" == agreementAlg) {
+                            val piccECPublicKey = publicKey as ECPublicKey
+                            params = piccECPublicKey.params
+                        }
+
+                        /* Generate the ephemeral keypair based on received challenge from relying party with key attestation.*/
+                        val keyPairGenerator =
+                            KeyPairGenerator.getInstance(agreementAlg, "AndroidKeyStore")
+
+                        val newSpec = params?.let {
+                            KeyGenParameterSpec.Builder(
+                                KEYSTORE_ALIAS,
+                                KeyProperties.PURPOSE_AGREE_KEY)
+                                .setAlgorithmParameterSpec(it)
+                                .setDigests(KeyProperties.DIGEST_SHA256)
+                                .setAttestationChallenge(this.stateBasket.relyingparty_challenge)
+                                .build()
+                        }
+
+                        keyPairGenerator.initialize(newSpec)
+                        val appKeyPair = keyPairGenerator.generateKeyPair()
+                        val appPublicKey = appKeyPair.public
+                        val appPrivateKey = appKeyPair.private
+
+                        val eaccaapduSender = EACCAAPDUSender(passportService)
+                        Log.d(TAG,"Sedning Public Key")
+                        EACCAProtocol.sendPublicKey(eaccaapduSender, passportService.wrapper, oid, keyId, appPublicKey)
+                        Log.d(TAG,"Sedning Public Key - done")
+                        val keyHash = EACCAProtocol.getKeyHash(agreementAlg, appPublicKey)
+                        val sharedSecret = EACCAProtocol.computeSharedSecret(
+                            agreementAlg,
+                            publicKey,
+                            appPrivateKey
+                        )
+                        //Not necessary?
+                        //val new_wrapper = EACCAProtocol.restartSecureMessaging(
+                        //    oid,
+                        //    sharedSecret,
+                        //    maxTranceiveLength,
+                        //    shouldCheckMAC
+                        //)
+
+                        val commandAPDU = CommandAPDU(this.stateBasket.relyingparty_challenge)
+                        Log.d(TAG,"Sedning random challenge")
+                        val responseAPDU: ResponseAPDU = passportService.transmit(commandAPDU)
+                        Log.d(TAG,"Sedning random challenge -done. Reiceved responseAPDU")
+
+                        val cert = KeyStore.getInstance("AndroidKeyStore").getCertificateChain(KEYSTORE_ALIAS)
+                        val cert_x509 = arrayOfNulls<X509Certificate>(cert.size)
+                        for (i in cert.indices) {
+                            val ct = cert[i]
+                            Log.i(TAG, "Cert: " + ct.type)
+                            Log.i(TAG, "Public: " + (ct as X509Certificate).toString())
+                            cert_x509[i] = ct
+                        }
+                        Log.i(TAG, "Public: $cert_x509")
+
+                        //TODO we should already have enough info here, transcript=appPublicKey,responseAPDU,sharedSecet,keyHash , key_attest=cert_x509, passport_pa=dg1,dg14,SOD is enough
+                        //dg14 in plain. dg1 in hash. then we have dg1 hash as public value to snark proof.
+
+                        Log.d(TAG,"Left integration with SNARK and server")
+                    }
+                    catch(e:Exception){
+                        Log.w(TAG, e);
+                    }
+                }
+            }
+        } catch (e: java.lang.Exception) {
+            Log.w(TAG, e)
+        }
+    }
+    private fun passiveAuth(dg1File:DG1File, sodFile:SODFile){
+        //Do on server
+
+        //Verify dg1 (for data), dg14 for (publickey),
+        val digest: MessageDigest = MessageDigest.getInstance(sodFile.getDigestAlgorithm())
+        val dg1Hash: ByteArray = digest.digest(dg1File.getEncoded())
+        val dataHashes = sodFile.dataGroupHashes
+
+        //Verify SOD against DSC
+        //Verify DSC against CSCA
+        //Verify DSC not in CRL
+        //Check that DG hash values match the hash values stored in SOD
     }
 
     /**

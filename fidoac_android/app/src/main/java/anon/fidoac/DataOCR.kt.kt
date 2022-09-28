@@ -23,13 +23,12 @@ class DataOCR(
     private val callBack: ((String, Date?, Date?) -> Unit)
 ){
     private val cameraExecutor = ScopedExecutor(TaskExecutors.MAIN_THREAD)
+    private var isOpened = false
     private lateinit var camera: Camera
     private lateinit var imageAnalyzer: ImageAnalysis
     private lateinit var cameraProvider: ProcessCameraProvider
     private lateinit var preview: Preview
     private val TAG = "DataOCR"
-
-
 
     fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -53,6 +52,7 @@ class DataOCR(
                 // zoom
                 //setUpPinchToZoom()
                 setCameraConfig(cameraProvider, cameraSelector)
+                isOpened = true
 
             }, ContextCompat.getMainExecutor(context)
         )
@@ -72,6 +72,12 @@ class DataOCR(
             preview?.setSurfaceProvider(finderView.surfaceProvider)
         } catch (e: Exception) {
             Log.e(TAG, "Use case binding failed", e)
+        }
+    }
+    fun stopCamera() {
+        if (isOpened){
+            isOpened = false
+            cameraProvider.unbindAll()
         }
     }
 
@@ -109,6 +115,7 @@ class DataOCR(
                             val mrz = parser.parse(processed_str_3line, options)
                             Log.d(TAG,processed_str_3line)
                             Log.d(TAG,mrz.toString())
+                            stopCamera()
                             callBack?.invoke(mrz.documentNumber,mrz.expiryDate,mrz.birthdate)
                         }
                         catch(e: Exception){

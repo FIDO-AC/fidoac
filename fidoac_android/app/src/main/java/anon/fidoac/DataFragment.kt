@@ -1,7 +1,10 @@
 package anon.fidoac
 
 
+import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,10 +14,10 @@ import android.view.View.OnTouchListener
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.TextView.OnEditorActionListener
-import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.view.PreviewView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import anon.fidoac.databinding.FragmentDataBinding
 import com.google.android.material.datepicker.CalendarConstraints
@@ -22,6 +25,7 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.tabs.TabLayout
 import java.text.SimpleDateFormat
 import java.util.*
+
 
 //TODO hide data all.
 //TODO clean data all.
@@ -188,14 +192,22 @@ class DataFragment : Fragment() {
             )
         binding.cameraBtn.setOnClickListener {
             if (allPermissionsGranted()) {
-                cameraOCR.startCamera()
+                startCamera()
             } else {
-                ActivityCompat.requestPermissions(
-                    this.requireActivity(),
-                    REQUIRED_PERMISSIONS,
-                    REQUEST_CODE_PERMISSIONS
-                )
+//                ActivityCompat.requestPermissions(
+//                    this.requireActivity(),
+//                    REQUIRED_PERMISSIONS,
+//                    REQUEST_CODE_PERMISSIONS
+//                )
+                permReqLauncher.launch(REQUIRED_PERMISSIONS)
             }
+        }
+        binding.cleanallBtn.setOnClickListener {
+            this.dob_pretty =""
+            this.expdate_pretty = ""
+            this.passportnum_pretty = ""
+
+            activity?.getSharedPreferences("Data", Context.MODE_PRIVATE)?.edit()?.clear()?.commit()
         }
 
         //Load Data from Storage on Startup
@@ -207,11 +219,6 @@ class DataFragment : Fragment() {
         }
 
         return view
-    }
-    private fun onSuccesfullyScan( documentNumber:String, expiryDate:Date?, birthDate:Date?) {
-        this.passportnum_pretty = documentNumber
-        this.dob_pretty = displayDFFormatter.format((birthDate))
-        this.expdate_pretty = displayDFFormatter.format(expiryDate)
     }
 
     fun setTabLayout(tabLayout: TabLayout){
@@ -314,11 +321,50 @@ class DataFragment : Fragment() {
         REQUIRED_PERMISSIONS.all {
             ContextCompat.checkSelfPermission(this.requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
+    private val permReqLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            if (allPermissionsGranted()){
+                startCamera()
+            }
+        }
+    private fun startCamera() {
+        binding.previewView.visibility = View.VISIBLE
+        cameraOCR.startCamera()
+    }
+    private fun onSuccesfullyScan( documentNumber:String, expiryDate:Date?, birthDate:Date?) {
+        this.passportnum_pretty = documentNumber
+        this.dob_pretty = displayDFFormatter.format((birthDate))
+        this.expdate_pretty = displayDFFormatter.format(expiryDate)
+
+        binding.previewView.visibility = View.GONE
+        val dialog: DialogFragment = ConfirmationDialogFragment()
+        dialog.show(this.parentFragmentManager,ConfirmationDialogFragment.TAG)
+    }
+    class ConfirmationDialogFragment : DialogFragment() {
+        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+            // Use the Builder class for convenient dialog construction
+            val builder: AlertDialog.Builder = AlertDialog.Builder(getActivity())
+            builder.setTitle("MRZ Read Succesfully")
+            builder.setMessage("Please check your detail to ensure it had been read correctly.")
+            builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, id ->
+            })
+            return builder.create()
+        }
+
+        companion object{
+            const val TAG = "ConfirmationDialogFragment"
+        }
+    }
+    fun closeCamera(){
+        binding.previewView.visibility = View.GONE
+        cameraOCR.stopCamera()
+    }
     companion object {
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(
             android.Manifest.permission.CAMERA
         )
+
 
         /**
          * Use this factory method to create a new instance of

@@ -123,8 +123,9 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             }
         }
         binding.rejectBtnTextview.setOnClickListener {
-            stopScanning()
+            stopScanningReject()
             rejectAndSendDataBack()
+
         }
 
 //        NFC Logic
@@ -195,6 +196,15 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             .toBitmap())
             binding.scanImageView.setImageDrawable(ContextCompat.getDrawable(this.requireContext(), R.drawable.ic_launcher_foreground_maincolor))
         })
+        isScanning = false
+    }
+    private fun stopScanningReject(){
+        binding.instructionInfo.setText("Rejected. Downgrade to FIDO")
+//        binding.animatedscanBtn.doneLoadingAnimation(0, ContextCompat.getDrawable(this.requireContext(), R.drawable.ic_baseline_cancel_24)!!.toBitmap())
+        binding.scanImageView.setImageDrawable(ContextCompat.getDrawable(this.requireContext(), R.drawable.ic_baseline_cancel_24))
+
+        if (!isScanning) return
+        if (mNfcAdapter != null) mNfcAdapter!!.disableReaderMode(this.requireActivity()) //Disable after we read the data
         isScanning = false
     }
 

@@ -4,11 +4,18 @@ import android.content.Intent
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import anon.fidoac.databinding.ActivityMainBinding
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.lang.StringBuilder
 
 //Sources.
 //https://fonts.google.com/icons?icon.query=home&icon.platform=android
@@ -32,8 +39,8 @@ class MainActivity : AppCompatActivity() {
 
         //Disable temporary because UI is not adaptive to dark mode.
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-
     }
+
 
     /**
      * A native method that is implemented by the 'fidoac' native library,

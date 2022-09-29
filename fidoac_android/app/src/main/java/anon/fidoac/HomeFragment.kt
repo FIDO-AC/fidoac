@@ -1,19 +1,27 @@
 package anon.fidoac
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.Lifecycle
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import anon.fidoac.databinding.ActivityMainBinding
+import anon.fidoac.databinding.FragmentHomeBinding
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayout.OnTabSelectedListener
 import com.google.android.material.tabs.TabLayoutMediator
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.lang.StringBuilder
 
 
 // TODO: Rename parameter arguments, choose names that match
@@ -37,6 +45,8 @@ class HomeFragment : Fragment() {
 
     private lateinit var tabs:TabLayout
     private lateinit var mydf:DataFragment
+    private var _binding: FragmentHomeBinding? = null
+    private val binding get() = _binding!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,11 +61,11 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val root = inflater.inflate(R.layout.fragment_home, container, false)
-        val viewpagger: ViewPager2 =root.findViewById<ViewPager2>(R.id.homefrag_pager)
+        _binding= FragmentHomeBinding.inflate(inflater, container, false)
+        val viewpagger: ViewPager2 = binding.homefragPager
         viewpagger.offscreenPageLimit = 1
         viewpagger.isSaveEnabled=false
-        tabs = root.findViewById<TabLayout>(R.id.homefrag_tab_layout)
+        tabs = binding.homefragTabLayout
         tabs.addOnTabSelectedListener(object : OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {}
             override fun onTabUnselected(tab: TabLayout.Tab) {
@@ -96,7 +106,7 @@ class HomeFragment : Fragment() {
             viewpagger.setCurrentItem(tab.position, true)
         }.attach()
 
-        return root
+        return binding.root
     }
 
     class MyViewPagerAdapter(manager: FragmentManager, lifecycle: Lifecycle) :  FragmentStateAdapter(manager,lifecycle ){

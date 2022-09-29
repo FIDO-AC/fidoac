@@ -54,8 +54,7 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
     fun runToReadDG1(bacKey:BACKey): Unit? {
         var paceSucceeded = false
         try {
-            if (false){
-
+            if (true){
                 try {
                     val cardAccessFile:CardAccessFile = CardAccessFile(passportService.getInputStream(PassportService.EF_CARD_ACCESS))
                     for (securityInfo: SecurityInfo in cardAccessFile.securityInfos) {
@@ -63,21 +62,36 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
                             val paceInfo:PACEInfo = securityInfo
                             passportService.doPACE(this.stateBasket.paceKey, paceInfo.getObjectIdentifier(), PACEInfo.toParameterSpec(paceInfo.getParameterId()), null);
                             paceSucceeded = true;
+                            Log.d(TAG, "PACE Done");
                         }
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, e);
                 }
 
-                passportService.sendSelectApplet(paceSucceeded);
+                try{
+                    passportService.sendSelectApplet(paceSucceeded);
+                }
+                catch(e:Exception){
+                    Log.e(TAG,"Cannot Select Applet. Returning\n\n")
+                    Log.w(TAG,e)
+                    return null
+                }
 
                 if (!paceSucceeded) {
                     try {
                         passportService.getInputStream(PassportService.EF_COM).read();
                         Log.d(TAG,"Done Commmon Read")
                     } catch (e: Exception) {
-                        passportService.doBAC(bacKey);
-                        Log.d(TAG,"Done BAC")
+                        try{
+                            passportService.doBAC(bacKey);
+                            Log.d(TAG,"Done BAC")
+                        }
+                        catch (e: Exception){
+                            Log.e(TAG,"BAC & PACE Failed. Returning\n\n")
+                            Log.w(TAG,e)
+                            return null
+                        }
                     }
                 }
             }
@@ -94,17 +108,17 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
             val dg14File = readDG14File(stateBasket.context)
             Log.d(TAG,dg14File.toString())
             Log.d(TAG,"Reading SOD")
-            val sodFile = readDG14File(stateBasket.context)
+            val sodFile = readSODFile(stateBasket.context)
             Log.d(TAG,sodFile.toString())
 
-//            // We perform Chip Authentication using Data Group 14
-            if (paceSucceeded)
+            // We perform Chip Authentication using Data Group 14
+            if (paceSucceeded){
                 dg14File?.let { doChipAuth(passportService, it) };
-//            // Then Passive Authentication using SODFile
+                //return final result here
+            }
 //            doPassiveAuth();
         } catch (e: Exception) {
             Log.w(TAG, e);
-
         }
         return null;
     }
@@ -173,9 +187,10 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
                         //)
 
                         val commandAPDU = CommandAPDU(this.stateBasket.relyingparty_challenge)
-                        Log.d(TAG,"Sedning random challenge")
+                        Log.d(TAG,"Sending random challenge")
                         val responseAPDU: ResponseAPDU = passportService.transmit(commandAPDU)
-                        Log.d(TAG,"Sedning random challenge -done. Reiceved responseAPDU")
+                        Log.d(TAG,"Sending random challenge -done. Reiceved responseAPDU")
+                        Log.d(TAG,responseAPDU.toString())
 
                         val cert = KeyStore.getInstance("AndroidKeyStore").getCertificateChain(KEYSTORE_ALIAS)
                         val cert_x509 = arrayOfNulls<X509Certificate>(cert.size)
@@ -306,9 +321,9 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
         return file
     }
 
-    abstract fun readDG1File(context: Context?): DG1File?
-    abstract fun readDG14File(context: Context?): DG14File?
-    abstract fun readSODFile(context: Context?): SODFile?
+    abstract fun readDG1File(context: Context): DG1File?
+    abstract fun readDG14File(context: Context): DG14File?
+    abstract fun readSODFile(context: Context): SODFile?
     fun close() {
         passportService.close()
     }
@@ -355,14 +370,15 @@ internal class EIDEPassportInterface
      * Read DG1 File from an eID
      * @param context App context - used for caching
      */
-    override fun readDG1File(context: Context?): DG1File? {
+    //MODE_PRIVATE = overwrite
+    override fun readDG1File(context: Context): DG1File? {
         val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
         if (sharedPref.getBoolean("DG1FileCached", false)) {
             Log.i(TAG, "Accessing cached DG.")
             try {
-                val fileInputStream = context?.openFileInput("DG1File")
+                val fileInputStream = context.openFileInput("DG1File")
                 val bufferedInputStream = BufferedInputStream(fileInputStream)
-//                return DG1File(bufferedInputStream)
+                return DG1File(bufferedInputStream)
             } catch (e: IOException) {
                 Log.e(TAG, "Error reading cached file!")
             }
@@ -380,7 +396,7 @@ internal class EIDEPassportInterface
             Log.e(TAG,e.stackTraceToString())
         }
         try {
-            val fileOutputStream = context?.openFileOutput("DG1File", Context.MODE_PRIVATE)
+            val fileOutputStream = context.openFileOutput("DG1File", Context.MODE_PRIVATE)
             val bufferedOutputStream = BufferedOutputStream(fileOutputStream)
             bufferedOutputStream.write(file!!.encoded)
             bufferedOutputStream.close()
@@ -400,12 +416,12 @@ internal class EIDEPassportInterface
      * Read DG14 File from an eID
      * @param context App context - used for caching
      */
-    override fun readDG14File(context: Context?): DG14File? {
+    override fun readDG14File(context: Context): DG14File? {
         val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
         if (sharedPref.getBoolean("DG14FileCached", false)) {
             Log.i(TAG, "Accessing cached DG.")
             try {
-                val fileInputStream = context?.openFileInput("DG14File")
+                val fileInputStream = context.openFileInput("DG14File")
                 val bufferedInputStream = BufferedInputStream(fileInputStream)
                 return DG14File(bufferedInputStream)
             } catch (e: IOException) {
@@ -421,7 +437,7 @@ internal class EIDEPassportInterface
             Log.e(TAG, "Error reading passport file")
         }
         try {
-            val fileOutputStream = context?.openFileOutput("DG14File", Context.MODE_PRIVATE)
+            val fileOutputStream = context.openFileOutput("DG14File", Context.MODE_PRIVATE)
             val bufferedOutputStream = BufferedOutputStream(fileOutputStream)
             bufferedOutputStream.write(file!!.encoded)
             bufferedOutputStream.close()
@@ -441,18 +457,18 @@ internal class EIDEPassportInterface
      * Read SOD File from an eID
      * @param context App context - used for caching
      */
-    override fun readSODFile(context: Context?): SODFile? {
+    override fun readSODFile(context: Context): SODFile? {
         val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
         if (sharedPref.getBoolean("SODFileCached", false)) {
             Log.i(TAG, "Accessing cached DG.")
-            val files = context?.fileList()
+            val files = context.fileList()
             if (files != null) {
                 for (fileName in files) {
                     Log.i(TAG, "Available file: $fileName")
                 }
             }
             try {
-                val fileInputStream = context?.openFileInput("SODFile")
+                val fileInputStream = context.openFileInput("SODFile")
                 val bufferedInputStream = BufferedInputStream(fileInputStream)
                 return SODFile(bufferedInputStream)
             } catch (e: IOException) {

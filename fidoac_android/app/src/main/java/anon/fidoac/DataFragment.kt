@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import anon.fidoac.databinding.FragmentDataBinding
+import com.fasterxml.jackson.databind.util.ClassUtil.getPackageName
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.tabs.TabLayout
@@ -206,8 +207,9 @@ class DataFragment : Fragment() {
             this.dob_pretty =""
             this.expdate_pretty = ""
             this.passportnum_pretty = ""
-
             activity?.getSharedPreferences("Data", Context.MODE_PRIVATE)?.edit()?.clear()?.commit()
+            activity?.getSharedPreferences((context?.packageName ?: "anon.fidoac") +"_preferences", Context.MODE_PRIVATE)?.edit()?.clear()?.commit()
+            //TODO delete the actual file
         }
 
         //Load Data from Storage on Startup

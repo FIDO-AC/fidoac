@@ -220,7 +220,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
     private fun sendDataToHTMLServer(){
         //TODO have a server to send back data to.
 
-        exit()
+//        exit()
     }
 
 

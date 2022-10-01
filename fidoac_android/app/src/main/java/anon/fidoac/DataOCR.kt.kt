@@ -127,6 +127,7 @@ class DataOCR(
                             }
                             catch(e:Exception){
                                 Log.d(TAG,"Try again, cannot parse MRZ")
+                                Log.d(TAG,processed_str_3line)
                                 imageProxy.close()
                             }
                         }

@@ -6,35 +6,25 @@ import android.content.Context
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.preference.PreferenceManager
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import android.util.Log
-import net.sf.scuba.smartcards.CardService
-import net.sf.scuba.smartcards.CardServiceException
-import net.sf.scuba.smartcards.CommandAPDU
-import net.sf.scuba.smartcards.ResponseAPDU
-import org.bouncycastle.asn1.ASN1InputStream
-import org.bouncycastle.asn1.ASN1Primitive
-import org.bouncycastle.asn1.ASN1Sequence
-import org.bouncycastle.asn1.ASN1Set
+import net.sf.scuba.smartcards.*
 import org.jmrtd.BACKey
 import org.jmrtd.PACEKeySpec
 import org.jmrtd.PassportService
+import org.jmrtd.Util
 import org.jmrtd.lds.*
 import org.jmrtd.lds.icao.DG14File
 import org.jmrtd.lds.icao.DG1File
 import org.jmrtd.protocol.EACCAAPDUSender
 import org.jmrtd.protocol.EACCAProtocol
+import org.jmrtd.protocol.SecureMessagingAPDUSender
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.IOException
 import java.math.BigInteger
 import java.security.KeyPairGenerator
-import java.security.KeyStore
 import java.security.MessageDigest
 import java.security.PublicKey
-import java.security.cert.Certificate
-import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
 import java.security.spec.AlgorithmParameterSpec
 import java.util.*
@@ -116,6 +106,10 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
                 dg14File?.let { doChipAuth(passportService, it) };
                 //return final result here
             }
+            else{
+                Log.d(TAG,"BAC Chip Auth")
+                dg14File?.let { doChipAuth(passportService, it) };
+            }
 //            doPassiveAuth();
         } catch (e: Exception) {
             Log.w(TAG, e);
@@ -124,94 +118,94 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
     }
     private fun doChipAuth(service: PassportService, dg14File :DG14File) {
         try {
+            //Assume only one algorithm is supported.
             val dg14FileSecurityInfos: Collection<SecurityInfo> = dg14File.getSecurityInfos()
+            Log.d(TAG, dg14FileSecurityInfos.toString())
+            var publicKeyInfo:SecurityInfo? = null
+            var keyId: BigInteger? = null
+            var publicKey: PublicKey? = null
+            var oid:String = ""
             for (securityInfo in dg14FileSecurityInfos) {
+                Log.d(TAG, "Checking security info")
+                Log.d(TAG, securityInfo.toString())
                 if (securityInfo is ChipAuthenticationPublicKeyInfo) {
-                    val publicKeyInfo = securityInfo
-                    val keyId: BigInteger = publicKeyInfo.keyId
-                    val publicKey: PublicKey = publicKeyInfo.subjectPublicKey
-                    val oid = publicKeyInfo.objectIdentifier
-                    //This will do CA with random key.
-//                    service.doEACCA(
-//                        keyId,
-//                        ChipAuthenticationPublicKeyInfo.ID_CA_ECDH_AES_CBC_CMAC_256,
-//                        oid,
-//                        publicKey
-//                    )
-                    try {
-                        val agreementAlg = ChipAuthenticationInfo.toKeyAgreementAlgorithm(oid)
-                        var params: AlgorithmParameterSpec? = null
-                        if ("DH" == agreementAlg) {
-                            val piccDHPublicKey = publicKey as DHPublicKey
-                            params = piccDHPublicKey.params
-                        } else if ("ECDH" == agreementAlg) {
-                            val piccECPublicKey = publicKey as ECPublicKey
-                            params = piccECPublicKey.params
-                        }
-
-                        /* Generate the ephemeral keypair based on received challenge from relying party with key attestation.*/
-                        val keyPairGenerator =
-                            KeyPairGenerator.getInstance(agreementAlg, "AndroidKeyStore")
-
-                        val newSpec = params?.let {
-                            KeyGenParameterSpec.Builder(
-                                KEYSTORE_ALIAS,
-                                KeyProperties.PURPOSE_AGREE_KEY)
-                                .setAlgorithmParameterSpec(it)
-                                .setDigests(KeyProperties.DIGEST_SHA256)
-                                .setAttestationChallenge(this.stateBasket.relyingparty_challenge)
-                                .build()
-                        }
-
-                        keyPairGenerator.initialize(newSpec)
-                        val appKeyPair = keyPairGenerator.generateKeyPair()
-                        val appPublicKey = appKeyPair.public
-                        val appPrivateKey = appKeyPair.private
-
-                        val eaccaapduSender = EACCAAPDUSender(passportService)
-                        Log.d(TAG,"Sedning Public Key")
-                        EACCAProtocol.sendPublicKey(eaccaapduSender, passportService.wrapper, oid, keyId, appPublicKey)
-                        Log.d(TAG,"Sedning Public Key - done")
-                        val keyHash = EACCAProtocol.getKeyHash(agreementAlg, appPublicKey)
-                        val sharedSecret = EACCAProtocol.computeSharedSecret(
-                            agreementAlg,
-                            publicKey,
-                            appPrivateKey
-                        )
-                        //Not necessary?
-                        //val new_wrapper = EACCAProtocol.restartSecureMessaging(
-                        //    oid,
-                        //    sharedSecret,
-                        //    maxTranceiveLength,
-                        //    shouldCheckMAC
-                        //)
-
-                        val commandAPDU = CommandAPDU(this.stateBasket.relyingparty_challenge)
-                        Log.d(TAG,"Sending random challenge")
-                        val responseAPDU: ResponseAPDU = passportService.transmit(commandAPDU)
-                        Log.d(TAG,"Sending random challenge -done. Reiceved responseAPDU")
-                        Log.d(TAG,responseAPDU.toString())
-
-                        val cert = KeyStore.getInstance("AndroidKeyStore").getCertificateChain(KEYSTORE_ALIAS)
-                        val cert_x509 = arrayOfNulls<X509Certificate>(cert.size)
-                        for (i in cert.indices) {
-                            val ct = cert[i]
-                            Log.i(TAG, "Cert: " + ct.type)
-                            Log.i(TAG, "Public: " + (ct as X509Certificate).toString())
-                            cert_x509[i] = ct
-                        }
-                        Log.i(TAG, "Public: $cert_x509")
-
-                        //TODO we should already have enough info here, transcript=appPublicKey,responseAPDU,sharedSecet,keyHash , key_attest=cert_x509, passport_pa=dg1,dg14,SOD is enough
-                        //dg14 in plain. dg1 in hash. then we have dg1 hash as public value to snark proof.
-
-                        Log.d(TAG,"Left integration with SNARK and server")
-                    }
-                    catch(e:Exception){
-                        Log.w(TAG, e);
-                    }
+                    publicKeyInfo = securityInfo
+                    keyId = publicKeyInfo.keyId
+                    publicKey = publicKeyInfo.subjectPublicKey
+                    //oid = publicKeyInfo.objectIdentifier
+                }
+                if (securityInfo is ChipAuthenticationInfo){
+                    publicKeyInfo = securityInfo
+                    keyId = publicKeyInfo.keyId
+                    oid = securityInfo.objectIdentifier
                 }
             }
+
+            try {
+                var agreementAlg:String? = null
+                agreementAlg = ChipAuthenticationInfo.toKeyAgreementAlgorithm(oid)
+
+                var params: AlgorithmParameterSpec? = null
+                if ("DH" == agreementAlg) {
+                    val piccDHPublicKey = publicKey as DHPublicKey
+                    params = piccDHPublicKey.params
+                } else if ("ECDH" == agreementAlg) {
+                    val piccECPublicKey = publicKey as ECPublicKey
+                    params = piccECPublicKey.params
+                }
+
+                //passportService.doEACCA()
+                /* Generate the ephemeral keypair based on received challenge from relying party with key attestation.*/
+                val keyPairGenerator =
+                    KeyPairGenerator.getInstance(agreementAlg,
+                        Util.getBouncyCastleProvider())
+                //Because IOS does not allow attestation on ECDH. But Android may use AndroidKeyStore.
+
+                keyPairGenerator.initialize(params)
+                val appKeyPair = keyPairGenerator.generateKeyPair()
+                val appPublicKey = appKeyPair.public
+                val appPrivateKey = appKeyPair.private
+
+                val eaccaapduSender = EACCAAPDUSender(passportService)
+                Log.d(TAG,"Sedning Public Key")
+                EACCAProtocol.sendPublicKey(eaccaapduSender, passportService.wrapper, oid, keyId, appPublicKey)
+                Log.d(TAG,"Sedning Public Key - done")
+                val keyHash = EACCAProtocol.getKeyHash(agreementAlg, appPublicKey)
+                val sharedSecret = EACCAProtocol.computeSharedSecret(
+                    agreementAlg,
+                    publicKey,
+                    appPrivateKey
+                )
+                //Not necessary?
+                val new_wrapper = EACCAProtocol.restartSecureMessaging(
+                    oid,
+                    sharedSecret,
+                    255,
+                    true
+                )
+
+                //Get challenge
+                val capdu: CommandAPDU =
+                    CommandAPDU(ISO7816.CLA_ISO7816.toUInt().toInt(), ISO7816.INS_GET_CHALLENGE.toUInt().toInt(), 0x00, 0x00,8)
+                val secureMessagingSender = SecureMessagingAPDUSender(passportService)
+                val rapdu: ResponseAPDU = secureMessagingSender.transmit(new_wrapper, capdu)
+                Log.d(TAG,rapdu.toString())
+
+//                val commandAPDU = CommandAPDU(this.stateBasket.relyingparty_challenge)
+//                Log.d(TAG,"Sending random challenge")
+//                val responseAPDU: ResponseAPDU = passportService.transmit(commandAPDU)
+//                Log.d(TAG,"Sending random challenge -done. Reiceved responseAPDU")
+//                Log.d(TAG,responseAPDU.toString())
+
+                //TODO we should already have enough info here, transcript=appPublicKey,responseAPDU,sharedSecet,keyHash , passport_pa=dg1,dg14,SOD is enough
+                //dg14 in plain. dg1 in hash. then we have dg1 hash as public value to snark proof.
+                Log.d(TAG,"Left integration with SNARK and server")
+                return
+            }
+            catch(e:Exception){
+                Log.w(TAG, e);
+            }
+
         } catch (e: java.lang.Exception) {
             Log.w(TAG, e)
         }

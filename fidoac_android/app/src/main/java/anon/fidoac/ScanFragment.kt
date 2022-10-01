@@ -166,7 +166,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                 bacKey, paceKey!!, this.requireContext()
             )
         //TODO put in correct challenge
-        this.stateBasket!!.relyingparty_challenge = byteArrayOf(0x0, 0x1, 0x2)
+        this.stateBasket!!.relyingparty_challenge = byteArrayOf(0x0, 0x1, 0x2, 0x3, 0x5)
         if (mNfcAdapter != null) {
             val options = Bundle()
             // Work around for some broken Nfc firmware implementations that poll the card too fast

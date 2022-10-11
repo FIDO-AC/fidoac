@@ -156,7 +156,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                 binding.scanImageView.post { animatedVectorDrawable.start() }
             }
         })
-        animatedVectorDrawable?.start()
+//        animatedVectorDrawable?.start()
 
         val paceKey = getPaceKey(passportnumgetter!!(), dobgetter!!(), expdategetter!!())
         val bacKey = getBacKey(passportnumgetter!!(), dobgetter!!(), expdategetter!!())
@@ -178,8 +178,8 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                         NfcAdapter.FLAG_READER_NFC_B or
                         NfcAdapter.FLAG_READER_NFC_F or
                         NfcAdapter.FLAG_READER_NFC_V or
-                        NfcAdapter.FLAG_READER_NFC_BARCODE,
-//                        NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
+                        NfcAdapter.FLAG_READER_NFC_BARCODE or
+                        NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
                 options
             )
         }
@@ -233,6 +233,8 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
     // This method is run in another thread when a card is discovered
     // This method cannot cannot direct interact with the UI Thread
     // Use `runOnUiThread` method to change the UI from this method
+    var benchmarkCounter = 0
+    val benchmarkThreshold = 100
     override fun onTagDiscovered(tag: Tag) {
         // Card should be an IsoDep Technology Type
         var mIsoDep = IsoDep.get(tag)
@@ -247,21 +249,14 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             }
             this.stateBasket?.eidInterface?.runToReadDG1(this.stateBasket!!.bacKey)
             stopScanning()
+            benchmarkCounter+=1
+            if (benchmarkCounter <benchmarkThreshold){
+                Log.d(TAG,"Loop:" + benchmarkCounter)
+                startScanning()
+            }
             sendDataToHTMLServer()
         }
 
-//            try {
-//                val reader = PassportReader()
-//                mIsoDep.timeout = 10000
-//                this.stateBasket?.let {
-//                    it.tag = tag
-//                    //At the moment for testing only run BAC.
-//                    reader.establishBACWithPassport(it)
-////                    if (!reader.establishPACEWithPassport(it)){
-////                        //Failed PACE, run BAC
-////                        reader.establishBACWithPassport(it)
-////                    }
-//                }
     }
 
     companion object {

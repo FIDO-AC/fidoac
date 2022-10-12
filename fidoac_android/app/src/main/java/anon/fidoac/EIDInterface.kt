@@ -115,6 +115,7 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
             }
             Log.d(TAG,"PACE Time:" + time.toString()+ "ms")
 
+
             var dg1File:DG1File? = null
             var dg14File:DG14File? = null
             var sodFile:SODFile? = null
@@ -164,8 +165,8 @@ abstract class EIDInterface(tag: android.nfc.Tag, val stateBasket: StateBasket) 
                     }
                 }
             }
-            totalTime+= time_check*1.0
-            numArray += time_check*1.0
+            totalTime+= time_check*1.0 + time*1.0
+            numArray += time_check*1.0 + time*1.0
             Log.d(TAG,"Time:" + time_check.toString()+ "ms")
             Log.d(TAG,"Average Time:" + totalTime/loopCount+ "ms")
             Log.d(TAG,"Standard Deviation:" + calculateSD(numArray)+ "ms")

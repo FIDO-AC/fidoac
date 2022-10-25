@@ -1,3 +1,6 @@
 [submodule "subprojects/libsnark-android-prebuilt-example"]
 	path = subprojects/libsnark-android-prebuilt-example
 	url = git@github.com:Wabo0/libsnark-android-prebuilt-example.git
+[submodule "fidoac_android/app/src/main/cpp/depends"]
+	path = fidoac_android/app/src/main/cpp/depends
+	url = https://github.com/yeohweizhu/android_snark_ac

@@ -116,7 +116,7 @@ FidoAC.createOpenAppModal = function(challenge){
     var applink = document.createElement('a')
     // applink.href="android-app://com.example.fidoac/http/example.com/?challenge="+challenge+"#Intent;action=com.example.fidoac.START_SERVICE;end"
     applink.href=FidoAC.getDeepLink(this.config.appid,challenge,location.origin,20)
-    document.getElementById("authDebug").innerHTML = challenge
+    document.getElementById("authDebug").innerHTML += challenge
     applink.innerHTML="Open FIDO AC App"
     applink.onclick = function () { background.remove() }
     applink.style.appearance = "button"

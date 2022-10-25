@@ -59,23 +59,27 @@ import kotlin.experimental.and
  * Storage object passed along the call chain of the entire reader process.
  * Functions may add values or access previously set ones.
  */
-class StateBasket(
-    val bacKey: BACKey,
-    val paceKey: PACEKeySpec, // for reading in the Intel Attestation Service root certificate
-    context: Context
-) {
+class StateBasket
+{
     var tag: Tag? = null
-    val context: Context
+    var context: Context? = null
     var eidInterface: EIDInterface? = null
     var sodFile // Document Security Object read from ePassport
             : SODFile? = null
-    var dg1File // DG1 (personal data) read from ePassport
-            : DG1File? = null
-    var dg14File // DG14 (security infos) read from ePassport
-            : DG14File? = null
+    var dg1_raw // DG1 (personal data) read from ePassport (Raw Byte)
+            : ByteArray? = null
+    var dg1_File: DG1File? = null
+    var dg14_raw // DG14 (security infos) read from ePassport (Raw Byte)
+            : ByteArray? = null
     var collectedClientData: JSONObject? = null
     var relyingparty_challenge:ByteArray? = null
-
+    var client_challenge:ByteArray? = null
+    var proof_data:ByteArray? = null
+    var ranomized_hash:ByteArray? = null
+    var mediator_sign:ByteArray? = null
+    var mediator_cert:ArrayList<ByteArray>? = null
+    var bacKey: BACKey? = null
+    var paceKey: PACEKeySpec? = null // for reading in the Intel Attestation Service root certificate
 
     /**
      * Initializes a stateBasket for EFIDO.

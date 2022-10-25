@@ -1,6 +1,6 @@
 package anon.fidoac
 
-import android.graphics.drawable.AnimatedVectorDrawable
+import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.nfc.NfcAdapter
 import android.nfc.Tag
@@ -13,26 +13,28 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.getColor
-import androidx.core.content.ContextCompat.getDrawable
 import androidx.core.graphics.drawable.toBitmap
 import androidx.fragment.app.Fragment
 import androidx.vectordrawable.graphics.drawable.Animatable2Compat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import anon.fidoac.databinding.FragmentScanBinding
+import anon.fidoac.service.FIDOACService
 import com.google.android.material.tabs.TabLayout
 import org.jmrtd.BACKey
 import org.jmrtd.BACKeySpec
 import org.jmrtd.PACEKeySpec
+import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.security.GeneralSecurityException
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
+import java.util.*
+import kotlin.math.sign
 
+//TODO display information about incoming stuff
 
-//TODO display information about incoming stuff, context sensitive button ->
-
-//TODO
-
-
-// TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
 private const val ARG_PARAM2 = "param2"
@@ -43,7 +45,6 @@ private const val ARG_PARAM2 = "param2"
  * create an instance of this fragment.
  */
 class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
-    // TODO: Rename and change types of parameters
     private var param1: String? = null
     private var param2: String? = null
 
@@ -54,7 +55,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
     //Navigate back to when complete
     lateinit var mtab_layout: TabLayout
 
-    private var stateBasket: StateBasket? = null
+    private var stateBasket: StateBasket = StateBasket()
     private var mNfcAdapter: NfcAdapter? = null
     private val TAG:String = "scan"
 
@@ -156,17 +157,20 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                 binding.scanImageView.post { animatedVectorDrawable.start() }
             }
         })
-//        animatedVectorDrawable?.start()
+        if (benchmarkThreshold ==1){
+            animatedVectorDrawable?.start()
+        }
 
         val paceKey = getPaceKey(passportnumgetter!!(), dobgetter!!(), expdategetter!!())
         val bacKey = getBacKey(passportnumgetter!!(), dobgetter!!(), expdategetter!!())
         Log.d(TAG,"Passport:"+ passportnumgetter!!() + "\tDOB:" + dobgetter!!() + "\tEXPDATE:"+expdategetter!!())
-        this.stateBasket =
-            StateBasket(
-                bacKey, paceKey!!, this.requireContext()
-            )
-        //TODO put in correct challenge
-        this.stateBasket!!.relyingparty_challenge = byteArrayOf(0x0, 0x1, 0x2, 0x3, 0x5)
+        this.stateBasket.bacKey = bacKey
+        this.stateBasket.paceKey = paceKey
+        this.stateBasket.context = this.requireContext()
+        this.stateBasket.relyingparty_challenge = (this.requireActivity() as MainActivity).session_server_challenge
+        val client_nonce = ByteArray(16)
+        SecureRandom.getInstanceStrong().nextBytes(client_nonce)
+        this.stateBasket.client_challenge = client_nonce
         if (mNfcAdapter != null) {
             val options = Bundle()
             // Work around for some broken Nfc firmware implementations that poll the card too fast
@@ -178,8 +182,8 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                         NfcAdapter.FLAG_READER_NFC_B or
                         NfcAdapter.FLAG_READER_NFC_F or
                         NfcAdapter.FLAG_READER_NFC_V or
-                        NfcAdapter.FLAG_READER_NFC_BARCODE or
-                        NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
+                        NfcAdapter.FLAG_READER_NFC_BARCODE,
+//                        NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
                 options
             )
         }
@@ -217,10 +221,21 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
         exit()
     }
 
-    private fun sendDataToHTMLServer(){
-        //TODO have a server to send back data to.
+    private fun sendDataToHTMLServer(stateBasket: StateBasket){
+        //We use base64 string here for Json file transfer.
+        val mIntent = Intent(this.requireActivity(), FIDOACService::class.java)
+        mIntent.putExtra("challenge", Base64.getEncoder().encodeToString(stateBasket.relyingparty_challenge!!))
+        mIntent.putExtra("proof", Base64.getEncoder().encodeToString(stateBasket.proof_data!!))
+        mIntent.putExtra("hash", Base64.getEncoder().encodeToString(stateBasket.ranomized_hash!!))
+        mIntent.putExtra("mediator_sign", Base64.getEncoder().encodeToString(stateBasket.mediator_sign!!) )
+        var certBase64Array = ArrayList<String>()
+        for (cert in stateBasket.mediator_cert!!){
+            certBase64Array.add(Base64.getEncoder().encodeToString(cert))
+        }
+        mIntent.putStringArrayListExtra("mediator_cert", certBase64Array)
+        this.requireActivity().startService(mIntent)
 
-//        exit()
+        //TODO have the response back from server and so on, and close the app
     }
 
 
@@ -234,7 +249,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
     // This method cannot cannot direct interact with the UI Thread
     // Use `runOnUiThread` method to change the UI from this method
     var benchmarkCounter = 0
-    val benchmarkThreshold = 100
+    val benchmarkThreshold = 1
     override fun onTagDiscovered(tag: Tag) {
         // Card should be an IsoDep Technology Type
         var mIsoDep = IsoDep.get(tag)
@@ -243,18 +258,41 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
         // Check that it is an mIsoDep capable card
         if (mIsoDep != null) {
             Log.d(TAG, "Detected NFC device")
-            this.stateBasket?.tag  = tag
-            this.stateBasket?.let { it.eidInterface =
-                it.tag?.let { it1 -> EIDEPassportInterface(it1, this.stateBasket!!) }
+            this.stateBasket.tag = tag
+            this.stateBasket.let { it.eidInterface =
+                it.tag?.let { it1 -> EIDEPassportInterface(it1, this.stateBasket) }
             }
-            this.stateBasket?.eidInterface?.runToReadDG1(this.stateBasket!!.bacKey)
+            val (signature, cert) = this.stateBasket.eidInterface!!.runReadPassportAndMediatorAttestation()
+            stateBasket.mediator_sign = signature
+            stateBasket.mediator_cert = cert
+            Log.d(TAG,"Mediator Completed")
             stopScanning()
+
+            //Compute randomized hash for ExampleVerifier
+            val ranomizedHash = MessageDigest.getInstance("SHA-256").digest(stateBasket.sodFile!!.dataGroupHashes[1]!! + stateBasket.client_challenge!!)
+            stateBasket.ranomized_hash = ranomizedHash
+
+            //TODO Pass in the correct proving key as second last parameter ie replace clientchallenge with PK
+            //TODO PAss in the correct verificaiton key for verification
+            Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toHex())
+            Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toString(Charsets.US_ASCII))
+            Log.d(TAG,"DG1 Raw Byte Length:" + stateBasket.dg1_raw!!.size)
+            val age_limit = 20
+            stateBasket.proof_data = (this.requireActivity() as MainActivity).snark_sha256(stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_limit,
+                ByteArray(0), ranomizedHash)
+
+            //Example verification for reference only. To be called on server side.
+            ExampleVerifier.Companion.verify(ranomizedHash, stateBasket.relyingparty_challenge!!, signature, cert,
+                stateBasket.proof_data!!,age_limit, ByteArray(0))
+            Log.d(TAG,"Server Mock Verification (For testing) Completed")
+
             benchmarkCounter+=1
             if (benchmarkCounter <benchmarkThreshold){
+                //Restart Scanning [Benchmark Automation]
                 Log.d(TAG,"Loop:" + benchmarkCounter)
                 startScanning()
             }
-            sendDataToHTMLServer()
+            sendDataToHTMLServer(this.stateBasket)
         }
 
     }

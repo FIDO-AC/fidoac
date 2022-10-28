@@ -21,7 +21,7 @@ jobs:
             username: azureuser
             port: 22
             key: ${{ secrets.SSH_SK }}
-            source: "./fidoac_server/"
+            source: "./fidoac_server"
             target: "fidoac_server"
             strip_components: 1
 
@@ -32,7 +32,7 @@ jobs:
           username: azureuser
           key: ${{ secrets.SSH_SK }}
           port: 22
-          script: cd fidoac_server && docker build -t fidoac-server .
+          script: cd fidoac_server/fidoac_server && docker build -t fidoac-server .
 
       - name: Run docker
         uses: appleboy/ssh-action@master

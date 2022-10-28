@@ -1,10 +1,19 @@
 package anon.fidoac
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import anon.fidoac.databinding.FragmentDataBinding
+import anon.fidoac.databinding.FragmentTutorialBinding
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.lang.StringBuilder
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -21,6 +30,11 @@ class TutorialFragment : Fragment() {
     private var param1: String? = null
     private var param2: String? = null
 
+    private val TAG:String = "LogFragment"
+
+    private var _binding: FragmentTutorialBinding? = null
+    private val binding get() = _binding!!
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -34,7 +48,42 @@ class TutorialFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_tutorial, container, false)
+        _binding =  FragmentTutorialBinding.inflate(inflater, container, false)
+        Runtime.getRuntime().exec("logcat -c") //Clear logcat
+        log2screenLoop()
+        return binding.root
+    }
+
+    private fun log2screenLoop(){
+        Handler(Looper.getMainLooper()).postDelayed({
+            //Do something after 100ms
+            log2screen()
+            log2screenLoop()
+        }, 1000)
+    }
+    private fun log2screen(){
+        try {
+            val targetTAG = "EIDEPassportInterface"
+            val process = Runtime.getRuntime().exec("logcat -d -s $targetTAG")
+            val bufferedReader = BufferedReader(
+                InputStreamReader(process.inputStream)
+            )
+            val log = StringBuilder()
+            var line: String? = ""
+            while (bufferedReader.readLine().also { line = it } != null) {
+                val newline = line?.slice(line!!.indexOf("$targetTAG")+TAG.length+1..line?.length!! -1)
+//                val newline = line
+                log.append(newline + System.getProperty("line.separator"))
+            }
+            val tv = binding.mainTextview as TextView
+            tv.text = tv.text.toString() + log.toString()
+            Runtime.getRuntime().exec("logcat -c") //Clear logcat
+        } catch (e: Exception) {
+            Log.i(TAG, e.toString())
+            if (e.cause != null) {
+                Log.i(TAG, e.cause.toString())
+            }
+        }
     }
 
     companion object {

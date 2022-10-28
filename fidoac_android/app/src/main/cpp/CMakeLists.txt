@@ -46,3 +46,21 @@ target_link_libraries( # Specifies the target library.
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
+
+############################
+# libsnark specific part:
+############################
+# include depends directory
+add_subdirectory(depends)
+
+add_definitions(-DCURVE_ALT_BN128)
+
+include_directories(
+        depends/libsnark/include
+        depends/libsnark-fido-ac/include
+)
+
+# link against libsnark-sha256
+target_link_libraries(fidoac
+
+        example)

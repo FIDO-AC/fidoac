@@ -15,8 +15,8 @@ FidoAC.configure = function(config) {
     this.config = { ...this.config, ...config };
 }
 
-FidoAC.getDeepLink = function (appid, challenge){
-    return `android-app://${appid}/https/fidoacsource.z13.web.core.windows.net/?challenge=${challenge}#Intent;action=${appid}.START_SERVICE;end`
+FidoAC.getDeepLink = function (appid, challenge, origin, ageQueryGT){
+    return `android-app://${appid}/https/fidoacsource.z13.web.core.windows.net/?challenge=${challenge}&origin=${origin}&ageQueryGT=${ageQueryGT}#Intent;action=${appid}.START_SERVICE;end`
 }
 
 FidoAC.callFidoAc = function(challenge) {
@@ -115,7 +115,8 @@ FidoAC.createOpenAppModal = function(challenge){
 
     var applink = document.createElement('a')
     // applink.href="android-app://com.example.fidoac/http/example.com/?challenge="+challenge+"#Intent;action=com.example.fidoac.START_SERVICE;end"
-    applink.href=FidoAC.getDeepLink(this.config.appid,challenge)
+    applink.href=FidoAC.getDeepLink(this.config.appid,challenge,location.origin,20)
+    document.getElementById("authDebug").innerHTML += challenge
     applink.innerHTML="Open FIDO AC App"
     applink.onclick = function () { background.remove() }
     applink.style.appearance = "button"

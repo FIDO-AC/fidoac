@@ -8,6 +8,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,13 +20,25 @@ public class FIDOACService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String challenge = intent.getStringExtra("challenge");
-        Log.i("FIDOAC","Challenge "+challenge);
+        String proof = intent.getStringExtra("proof");
+        String hash = intent.getStringExtra("hash");
+        String sign = intent.getStringExtra("mediator_sign");
+        ArrayList<String> certs = intent.getStringArrayListExtra("mediator_cert");
 
+        Log.i("FIDOAC","Challenge "+challenge);
 
         try {
             Map<String, String> data = new HashMap<>();
-            data.put("snark","test");
-            data.put("challenge",challenge);
+            data.put("client_zkproof",proof);
+            data.put("relying_party_challenge",challenge);
+            data.put("client_randomized_hash", hash);
+            data.put("mediator_sign", sign);
+            int counter=0;
+            for (String cert : certs){
+                data.put("mediator_cert_"+counter, cert);
+                counter+=1;
+            }
+
             server = new HttpServer(data,challenge);
         } catch (IOException e) {
             e.printStackTrace();

@@ -41,4 +41,4 @@ jobs:
           username: azureuser
           key: ${{ secrets.SSH_SK }}
           port: 22
-          script: sudo docker rm -f fidoac-server && sudo docker run --name fidoac-server -p 8080:8080 fidoac-server
+          script: sudo docker rm -f fidoac-server && sudo docker run -d --name fidoac-server -p 8080:8080 fidoac-server

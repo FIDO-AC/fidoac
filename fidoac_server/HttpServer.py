@@ -9,7 +9,7 @@ serverPort = 8080
 class MyServer(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         print(self.path)
-        if self.path == '/trustedSetup.json':
+        if self.path == '/fidoac-server/trustedSetup.json':
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()

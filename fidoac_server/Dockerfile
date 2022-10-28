@@ -17,10 +17,8 @@ RUN $HOME/miniconda/bin/conda install -c conda-forge nlohmann_json
 
 RUN mkdir /app
 COPY depends /app/depends
-COPY example /app/example
 COPY include /app/include
 COPY src /app/src
-COPY tests /app/tests
 COPY setup /app/setup
 COPY CMakeLists.txt /app/CMakeLists.txt
 COPY entrypoint.sh /app/entrypoint.sh

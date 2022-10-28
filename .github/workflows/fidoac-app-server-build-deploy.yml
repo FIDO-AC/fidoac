@@ -1,0 +1,48 @@
+name: FIDOAC APP Server Build and Deploy
+on: [workflow_dispatch]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./fidoac_app_server
+
+jobs:
+  run-action:
+    name: Run action
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16.x
+          cache: 'npm'
+          cache-dependency-path: ./fidoac_app_server/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build && npm run postbuild
+
+      - name: Copy dist via ssh
+        uses: appleboy/scp-action@master
+        with:
+            host: fido.westeurope.cloudapp.azure.com
+            username: azureuser
+            port: 22
+            key: ${{ secrets.SSH_SK }}
+            source: "./fidoac_app_server/dist"
+            target: "app"
+            strip_components: 2
+
+      - name: Restart server
+        uses: appleboy/ssh-action@master
+        with:
+          host: fido.westeurope.cloudapp.azure.com
+          username: azureuser
+          key: ${{ secrets.SSH_SK }}
+          port: 22
+          script: cd app && cp *.crt *.key .env dist/ && cd dist && npm install && /home/azureuser/.nvm/versions/node/v14.10.0/bin/pm2 restart 0

@@ -1,0 +1,15 @@
+[submodule "depends/ate-pairing"]
+	path = depends/ate-pairing
+	url = https://github.com/herumi/ate-pairing.git
+[submodule "depends/xbyak"]
+	path = depends/xbyak
+	url = https://github.com/herumi/xbyak.git
+[submodule "depends/libsnark-supercop"]
+	path = depends/libsnark-supercop
+	url = https://github.com/mbbarbosa/libsnark-supercop.git
+[submodule "depends/libff"]
+	path = depends/libff
+	url = https://github.com/clearmatics/libff.git
+[submodule "depends/libfqfft"]
+	path = depends/libfqfft
+	url = https://github.com/clearmatics/libfqfft.git

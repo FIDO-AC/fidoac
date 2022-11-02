@@ -1,0 +1,37 @@
+name: Clearmatics libff library
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-ubuntu:
+
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        compiler: [g++]
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: format-check
+      run: |
+        scripts/format
+        git diff --no-ext-diff > format_errs
+        head -n 20 format_errs
+        [ "0" == `cat format_errs | wc -l` ]
+    - name: install-dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential git libboost-all-dev cmake libgmp3-dev libssl-dev libprocps-dev pkg-config
+    - name: configure
+      env:
+        CXX: ${{ matrix.compiler }}
+      run: mkdir build && cd build && cmake ..
+    - name: build
+      run: cd build && make all profile
+    - name: test
+      run: cd build && CTEST_OUTPUT_ON_FAILURE=1 make check

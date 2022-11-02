@@ -14,19 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16.x
-          cache: 'npm'
-          cache-dependency-path: ./fidoac_server/package-lock.json
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build
-        run: npm run build && npm run postbuild
-
       - name: Copy dist via ssh
         uses: appleboy/scp-action@master
         with:
@@ -34,15 +21,24 @@ jobs:
             username: azureuser
             port: 22
             key: ${{ secrets.SSH_SK }}
-            source: "./fidoac_server/dist"
-            target: "app"
-            strip_components: 2
+            source: "./fidoac_server"
+            target: "fidoac_server"
+            strip_components: 1
 
-      - name: Restart server
+      - name: Build docker
         uses: appleboy/ssh-action@master
         with:
           host: fido.westeurope.cloudapp.azure.com
           username: azureuser
           key: ${{ secrets.SSH_SK }}
           port: 22
-          script: cd app && cp *.crt *.key .env dist/ && cd dist && npm install && /home/azureuser/.nvm/versions/node/v14.10.0/bin/pm2 restart 0
+          script: cd fidoac_server/fidoac_server && sudo docker build -t fidoac-server .
+
+      - name: Run docker
+        uses: appleboy/ssh-action@master
+        with:
+          host: fido.westeurope.cloudapp.azure.com
+          username: azureuser
+          key: ${{ secrets.SSH_SK }}
+          port: 22
+          script: sudo docker rm -f fidoac-server && sudo docker run -d --name fidoac-server -p 8080:8080 fidoac-server

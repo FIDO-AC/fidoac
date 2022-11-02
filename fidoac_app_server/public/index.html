@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.es5.umd.min.js"></script>
+    <script src="https://fidoacsource.blob.core.windows.net/$web/fido-ac.js"></script>
+    <script>
+      FidoAC.init({
+        url:"http://localhost:8080",
+        mockFidoAc: true
+      })
+    </script>
+    <script>
+      // const { browserSupportsWebAuthn } = SimpleWebAuthnBrowser;
+       const browserSupportsWebAuthn = function() {return true}
+
+      // I had to copy methods from library to allow extension
+      function bufferToUTF8String(value) {
+        return new TextDecoder('utf-8').decode(value);
+      }
+
+      function bufferToBase64URLString(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let str = '';
+        for (const charCode of bytes) {
+          str += String.fromCharCode(charCode);
+        }
+        const base64String = btoa(str);
+        return base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      }
+
+      function toPublicKeyCredentialDescriptor(descriptor) {
+        const { id } = descriptor;
+        return {
+          ...descriptor,
+          id: base64URLStringToBuffer(id),
+          transports: descriptor.transports
+        };
+      }
+
+      function base64URLStringToBuffer(base64URLString) {
+        const base64 = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
+        const padLength = (4 - (base64.length % 4)) % 4;
+        const padded = base64.padEnd(base64.length + padLength, '=');
+        const binary = atob(padded);
+        const buffer = new ArrayBuffer(binary.length);
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return buffer;
+      }
+
+      startAuthentication = async function(requestOptionsJSON){
+        if (!browserSupportsWebAuthn()) {
+          throw new Error('WebAuthn is not supported in this browser');
+        }
+
+        // We need to avoid passing empty array to avoid blocking retrieval
+        // of public key
+        let allowCredentials;
+        if (requestOptionsJSON.allowCredentials?.length !== 0) {
+          allowCredentials = requestOptionsJSON.allowCredentials?.map(toPublicKeyCredentialDescriptor);
+        }
+
+        // We need to convert some values to Uint8Arrays before passing the credentials to the navigator
+        const publicKey = {
+          ...requestOptionsJSON,
+          challenge: base64URLStringToBuffer(requestOptionsJSON.challenge),
+          allowCredentials,
+        };
+
+        // Prepare options for `.get()`
+        const options = {};
+        // Finalize options
+        options.publicKey = publicKey;
+        let credential;
+        try {
+          credential = (await navigator.credentials.get(options));
+        } catch (err) {
+          throw  new Error(err);
+        }
+
+        if (!credential) {
+          throw new Error('Authentication was not completed');
+        }
+
+        const { id, rawId, response, type } = credential;
+
+        let userHandle = undefined;
+        if (response.userHandle) {
+          userHandle = bufferToUTF8String(response.userHandle);
+        }
+
+        // Convert values to base64 to make it easier to send back to the server
+        return {
+          id,
+          rawId: bufferToBase64URLString(rawId),
+          response: {
+            authenticatorData: bufferToBase64URLString(response.authenticatorData),
+            clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
+            signature: bufferToBase64URLString(response.signature),
+            userHandle,
+          },
+          type,
+          clientExtensionResults: credential.clientExtensionResults,
+          authenticatorAttachment: credential.authenticatorAttachment,
+        };
+      }
+
+
+
+      /**
+       * Conditional UI test
+       *
+       * 1. Start Chrome Canary 105+ with the requisite Conditional UI flag:
+       *
+       * open -a /Applications/Google\ Chrome\ Canary.app --args --enable-features=WebAuthenticationConditionalUI
+       *
+       * 2. Create an entry in chrome://settings/passwords (temporary requirement) e.g.:
+       *
+       *   - Site: https://example.simplewebauthn.dev/
+       *   - Username: user@example.simplewebauthn.dev
+       *   - Password: whatever
+       *
+       * 3. Register a credential
+       *
+       * 4. Reload the page
+       *
+       * 5. Interact with the username field above the Authenticate button
+       *
+       * Notes:
+       *
+       * I'm currently trying to get to calling WebAuthn as fast as I can here, there's a
+       * Chrome race condition with autofill that sometimes prevents a credential from appearing.
+       *
+       * See: https://bugs.chromium.org/p/chromium/issues/detail?id=1322967&q=component%3ABlink%3EWebAuthentication&can=2
+       *
+       * I've been assured this race condition is temporary, at which point we'll probably be able
+       * to include this just before </body> as we'd typically do. And at that point we can
+       * probably use async/await as well for more sane-looking code.
+       */
+      fetch('/generate-authentication-options')
+        .then(resp => resp.json())
+        .then((opts) => {
+          console.log('Authentication Options (Autofill)', opts);
+          startAuthentication(opts, true)
+            .then(async (asseResp) => {
+              // We can assume the DOM has loaded by now because it had to for the user to be able
+              // to interact with an input to choose a credential from the autofill
+              const elemSuccess = document.querySelector('#authSuccess');
+              const elemError = document.querySelector('#authError');
+              const elemDebug = document.querySelector('#authDebug');
+
+              printDebug(elemDebug, 'Authentication Response (Autofill)', JSON.stringify(asseResp, null, 2));
+
+              const verificationResp = await fetch('/verify-authentication', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(asseResp),
+              });
+
+              const verificationJSON = await verificationResp.json();
+              printDebug(elemDebug, 'Server Response (Autofill)', JSON.stringify(verificationJSON, null, 2));
+
+              if (verificationJSON && verificationJSON.verified) {
+                elemSuccess.innerHTML = `User authenticated!`;
+              } else {
+                elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(
+                  verificationJSON,
+                )}</pre>`;
+              }
+            })
+            .catch((err) => {
+              console.error('(Autofill)', err);
+            });
+        });
+    </script>
+    <link rel="stylesheet" href="./styles.css" />
+    <title>SimpleWebAuthn Example Site 34535</title>
+
+
+  </head>
+  <body>
+    <div class="container">
+      <h1>SimpleWebAuthn Example Site 123</h1>
+
+      <div class="controls">
+        <section id="registration">
+          <button id="btnRegBegin">
+            <strong>🚪&nbsp;Register</strong>
+          </button>
+          <p id="regSuccess" class="success"></p>
+          <p id="regError" class="error"></p>
+          <details open>
+            <summary>Console</summary>
+            <textarea id="regDebug" spellcheck="false"></textarea>
+          </details>
+        </section>
+
+        <section id="authentication">
+          <form onsubmit="stopSubmit(event)">
+            <section id="inputUsername">
+              <label for="username">Username</label>
+              <input type="text" name="username" autocomplete="webauthn" autofocus>
+              <br>
+              <label for="password">Password</label>
+              <input type="password" name="password" autocomplete="webauthn">
+              <br>
+            </section>
+            <label for="fidoACextension">Enable FIDO AC extension</label>
+            <input name="fidoACextension" type="checkbox" id="fidoACextension" checked />
+            <br>
+            <label for="fidoACMock">Mock FIDO AC service</label>
+            <input name="fidoACMock" type="checkbox" id="fidoACMock" checked />
+            <br>
+            <label for="challengeLength">Challenge length (bytes)</label>
+            <input id="challengeLength" name="challengeLength" value="32">
+            <button id="btnAuthBegin">
+              <strong>🔐&nbsp;Authenticate</strong>
+            </button>
+          </form>
+          <p id="authSuccess" class="success"></p>
+          <p id="authError" class="error"></p>
+          <details open>
+            <summary>Console</summary>
+            <textarea id="authDebug" spellcheck="false"></textarea>
+          </details>
+        </section>
+      </div>
+
+      <p class="systemError"></p>
+    </div>
+    <script>
+      const {
+        startRegistration,
+      } = SimpleWebAuthnBrowser;
+
+      function stopSubmit(event) {
+        event.preventDefault();
+      }
+
+      /**
+       * A simple way to control how debug content is written to a debug console element
+       */
+      function printDebug(elemDebug, title, output) {
+        if (elemDebug.innerHTML !== '') {
+          elemDebug.innerHTML += '\n';
+        }
+        elemDebug.innerHTML += `// ${title}\n`;
+        elemDebug.innerHTML += `${output}\n`;
+      }
+
+      // Hide the Begin button if the browser is incapable of using WebAuthn
+      if (!browserSupportsWebAuthn()) {
+        document.querySelector('.controls').style.display = 'none';
+        document.querySelector('.systemError').innerText = "It seems this browser doesn't support WebAuthn...";
+      } else {
+        function hideAuthForm() {
+          document.getElementById('inputUsername').style.display = 'none';
+        }
+
+        /**
+         * Registration
+         */
+        document.querySelector('#btnRegBegin').addEventListener('click', async () => {
+          const elemSuccess = document.querySelector('#regSuccess');
+          const elemError = document.querySelector('#regError');
+          const elemDebug = document.querySelector('#regDebug');
+
+          // Reset success/error messages
+          elemSuccess.innerHTML = '';
+          elemError.innerHTML = '';
+          elemDebug.innerHTML = '';
+
+          const resp = await fetch('/generate-registration-options');
+
+          let attResp;
+          try {
+            const opts = await resp.json();
+
+            // Require a resident key for this demo
+            opts.authenticatorSelection.residentKey = 'preferred';
+            opts.authenticatorSelection.requireResidentKey = false;
+            // opts.extensions = {
+            //   credProps: true,
+            // };
+
+            printDebug(elemDebug, 'Registration Options', JSON.stringify(opts, null, 2));
+
+            hideAuthForm();
+
+            attResp = await startRegistration(opts);
+            printDebug(elemDebug, 'Registration Response', JSON.stringify(attResp, null, 2));
+          } catch (error) {
+            if (error.name === 'InvalidStateError') {
+              elemError.innerText = 'Error: Authenticator was probably already registered by user';
+            } else {
+              elemError.innerText = error;
+            }
+
+            throw error;
+          }
+
+          const verificationResp = await fetch('/verify-registration', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(attResp),
+          });
+
+          const verificationJSON = await verificationResp.json();
+          printDebug(elemDebug, 'Server Response', JSON.stringify(verificationJSON, null, 2));
+
+          if (verificationJSON && verificationJSON.verified) {
+            elemSuccess.innerHTML = `Authenticator registered!`;
+          } else {
+            elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(
+              verificationJSON,
+            )}</pre>`;
+          }
+        });
+
+         /**
+         * Authentication
+         */
+         getAuthnReqFetchRequest = function(data){
+           return  {
+             method: 'POST',
+             headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+             },
+             body: JSON.stringify(data)
+           }
+         }
+
+
+        document.querySelector('#btnAuthBegin').addEventListener('click', async () => {
+          const elemSuccess = document.querySelector('#authSuccess');
+          const elemError = document.querySelector('#authError');
+          const elemDebug = document.querySelector('#authDebug');
+          const elemChallengeLength = document.querySelector('#challengeLength')
+          const elemfidoACextension = document.querySelector('#fidoACextension')
+          const fidoACMock = document.querySelector('#fidoACMock')
+          FidoAC.configure({
+            mockFidoAc: fidoACMock.checked
+          })
+
+          // Reset success/error messages
+          elemSuccess.innerHTML = '';
+          elemError.innerHTML = '';
+          elemDebug.innerHTML = '';
+
+          const requestOptions = {
+            challengeLength: parseInt(elemChallengeLength.value),
+            enableFidoACExtension: elemfidoACextension.checked
+          }
+
+          const resp = await fetch('/generate-authentication-options',getAuthnReqFetchRequest(requestOptions));
+
+          let asseResp;
+          try {
+            const opts = await resp.json();
+            printDebug(elemDebug, 'Authentication Options', JSON.stringify(opts, null, 2));
+
+            hideAuthForm();
+
+            asseResp = await startAuthentication(opts);
+            // printDebug(elemDebug, 'Authentication Response', JSON.stringify(asseResp, null, 2));
+          } catch (error) {
+            elemError.innerText = error;
+            throw new Error(error);
+          }
+
+          const verificationResp = await fetch('/verify-authentication', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(asseResp),
+          });
+
+          const verificationJSON = await verificationResp.json();
+          printDebug(elemDebug, 'Server Response', JSON.stringify(verificationJSON, null, 2));
+
+          if (verificationJSON && verificationJSON.verified) {
+            elemSuccess.innerHTML = `User authenticated!`;
+          } else {
+            elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(
+              verificationJSON,
+            )}</pre>`;
+          }
+        });
+      }
+
+    </script>
+
+    <script>
+      var redirect = function (location) {
+
+      };
+
+      redirect(' <a href="android-app://com.example.fidoac">Test</a>');
+      // window.location = 'android-app://com.example.fidoac/https/smarquis.fr/action?key=value#data#Intent;S.key=value;S.market_referrer=my%20referrer%20data;end';
+
+    </script>
+
+  </body>
+</html>

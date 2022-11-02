@@ -20,10 +20,10 @@ private:
     shared_ptr<pb_variable<FieldT>> year_now;
 
     vector<pb_variable_array<FieldT>> data_blocks;
+    vector<pb_variable_array<FieldT>> client_nonce_blocks;
     shared_ptr<pb_variable<FieldT>> ZERO;
     shared_ptr<sha256_93B_gadget> sha256_gd;
     shared_ptr<age_verification_gadget> age_verification_gd;
-
 
 public:
     fido_ac_gadget(
@@ -46,7 +46,7 @@ public:
         ZERO->allocate(pb, "ZERO");
     }
 
-    void feed_dg1(unsigned char *dg1, size_t dg1_length);
+    void feed_dg1(unsigned char *dg1, size_t dg1_length, unsigned char* client_nonce, size_t client_nonce_length);
     void generate_r1cs_constraints();
     void generate_r1cs_witness();
 

@@ -64,7 +64,7 @@ const r1cs_ppzksnark_keypair<default_r1cs_ppzksnark_pp> trusted_setup(
             "fido_ac_gadget"
             ));
 
-    fido_ac->feed_dg1(mock_input, dg1_length);
+    fido_ac->feed_dg1(mock_input, dg1_length, mock_input, 16);
 
     fido_ac->generate_r1cs_constraints();
     // TODO remove gen witness

@@ -41,12 +41,3 @@ else()
 
     target_link_libraries(libsnark-fido-ac snark)
 endif()
-
-message(STATUS " ${CMAKE_INSTALL_LIBDIR}")
-message(STATUS " ${CMAKE_INSTALL_INCLUDEDIR}")
-
-INSTALL (
-        TARGETS libsnark-fido-ac
-        LIBRARY DESTINATION ./test
-        PUBLIC_HEADER DESTINATION ./test
-)

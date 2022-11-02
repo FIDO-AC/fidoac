@@ -17,15 +17,20 @@ typedef libff::Fr<libff::default_ec_pp> FieldT;
  * used to determine the birthyear`s century and the calculated digest of the DG1.
  */
 class fido_ac_proof{
-private:
-    const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof;
-    const r1cs_ppzksnark_primary_input<default_r1cs_ppzksnark_pp> primary_input;
-
 public:
+    r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof;
+    r1cs_ppzksnark_primary_input<default_r1cs_ppzksnark_pp> primary_input;
+
+    fido_ac_proof() {}
+
     fido_ac_proof(
             const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof,
             const r1cs_ppzksnark_primary_input<default_r1cs_ppzksnark_pp> primary_input
     ) : proof(proof), primary_input(primary_input) {}
+
+    fido_ac_proof(
+            const r1cs_ppzksnark_primary_input<default_r1cs_ppzksnark_pp> primary_input
+    ) : primary_input(primary_input) {}
 
     const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> get_proof(){
         return this->proof;

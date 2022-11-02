@@ -4,7 +4,7 @@
  * \brief Proves that the input DG1 hashes to a specific digest and that the year from the date of birth is >= a given
  * reference year.
  *
- * @param in The raw DG1 read from the passport.
+ * @param in The raw DG1 read from the passport. OVERLORDED- To provide hashed digest as public inputs as well if is_public is true.
  * @param in_length The length of DG1 - should always be 93!
  * @param reference_year The year to compare the birthdate year against. MUST BE THE SAME AS IN TRUSTED SETUP.
  * @param current_year The LAST TWO DIGITS of the current year. This is used to decide if a birth year in the DG1 is
@@ -17,7 +17,10 @@ const fido_ac_proof prove(
         size_t in_length,
         int reference_year,
         int current_year,
-        const r1cs_ppzksnark_proving_key<default_r1cs_ppzksnark_pp>& pk){
+        const r1cs_ppzksnark_proving_key<default_r1cs_ppzksnark_pp>* pk,
+        unsigned char* client_nonce,
+        size_t client_nonce_length,
+        bool is_Public_Input_Only){
 
     assert(in_length == 93);
 
@@ -55,7 +58,23 @@ const fido_ac_proof prove(
             "fido_ac_gadget"
     ));
 
-    fido_ac->feed_dg1(in, in_length);
+    if (is_Public_Input_Only){
+        // primary input is year_ref, year_now, valid and the digest
+        pb->set_input_sizes(SHA256_digest_size + 3);
+        for (int i=0;i<32;i++){
+            unsigned char hash_byte = in[i];
+            for (int j=0;j<8;j++){
+                pb->val(hash_digest->bits[i*8+j]) = ((hash_byte>>(7-j))&0x1);
+                //if (i==0 && j==0){ //For testing only
+                //    pb->val(hash_digest->bits[i*8+j]) = !((hash_byte>>(7-j))&0x1);
+                //}
+            }
+        }
+
+        return fido_ac_proof(pb->primary_input());
+    }
+
+    fido_ac->feed_dg1(in, in_length, client_nonce, client_nonce_length);
 
     fido_ac->generate_r1cs_constraints();
     fido_ac->generate_r1cs_witness();
@@ -64,7 +83,7 @@ const fido_ac_proof prove(
     pb->set_input_sizes(SHA256_digest_size + 3);
 
     const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof = r1cs_ppzksnark_prover<default_r1cs_ppzksnark_pp>(
-            pk, pb->primary_input(), pb->auxiliary_input());
+            *pk, pb->primary_input(), pb->auxiliary_input());
 
     return fido_ac_proof(proof, pb->primary_input());
 

@@ -13,6 +13,9 @@ const fido_ac_proof prove(
         size_t in_length,
         int reference_year,
         int current_year,
-        const r1cs_ppzksnark_proving_key<default_r1cs_ppzksnark_pp>& pk);
+        const r1cs_ppzksnark_proving_key<default_r1cs_ppzksnark_pp>* pk,
+        unsigned char* client_nonce,
+        size_t client_nonce_length,
+        bool is_Public_Input_Only = false);
 
 #endif //LIBSNARK_SHA256_FIDO_AC_PROVER_HPP

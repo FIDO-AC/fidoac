@@ -1,8 +1,9 @@
 #include "libsnark-sha256/gadgets/fido_ac_gadget.hpp"
 
-void fido_ac_gadget::feed_dg1(unsigned char *dg1, size_t dg1_length) {
+void fido_ac_gadget::feed_dg1(unsigned char *dg1, size_t dg1_length, unsigned char* client_nonce, size_t client_nonce_length) {
 
     data_blocks = sha256_93B_gadget::feed_dg1(this->pb, dg1, dg1_length, *ZERO);
+    client_nonce_blocks = sha256_93B_gadget::feed_client_nonce(this->pb, client_nonce, client_nonce_length, *ZERO);
 
     sha256_gd.reset(new sha256_93B_gadget(
             this->pb,
@@ -10,6 +11,7 @@ void fido_ac_gadget::feed_dg1(unsigned char *dg1, size_t dg1_length) {
             data_blocks.at(1),
             *ZERO,
             hash_digest,
+            client_nonce_blocks.at(0),
             "sha256_93B_gadget"
             ));
 
@@ -21,7 +23,6 @@ void fido_ac_gadget::feed_dg1(unsigned char *dg1, size_t dg1_length) {
             *valid,
             "age_verification_gadget"
             ));
-
 }
 
 void fido_ac_gadget::generate_r1cs_constraints() {

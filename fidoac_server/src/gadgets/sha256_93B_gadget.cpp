@@ -14,14 +14,30 @@
     return out;
 }
 
+vector<pb_variable_array<FieldT>> sha256_93B_gadget::feed_client_nonce(protoboard<FieldT> &pb,
+                                                              unsigned char* client_nonce,
+                                                              size_t client_nonce_length,
+                                                              pb_variable<FieldT> &ZERO){
+    assert(client_nonce_length == 16); //128 bits
+    vector<pb_variable_array<FieldT>> out;
+
+    out.push_back(from_bits(pb, from_char_array(client_nonce, client_nonce_length), ZERO));
+
+    return out;
+}
+
 void sha256_93B_gadget::generate_r1cs_constraints(){
     hasher1->generate_r1cs_constraints();
     hasher2->generate_r1cs_constraints();
+    hasher3->generate_r1cs_constraints();
+//    hasher4->generate_r1cs_constraints();
 }
 
 void sha256_93B_gadget::generate_r1cs_witness(){
     hasher1->generate_r1cs_witness();
     hasher2->generate_r1cs_witness();
+    hasher3->generate_r1cs_witness();
+//    hasher4->generate_r1cs_witness();
 }
 
 pb_variable_array<FieldT> sha256_93B_gadget::from_bits(protoboard<FieldT> &pb, std::vector<bool> bits, pb_variable<FieldT>& ZERO){

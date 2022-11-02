@@ -1,8 +1,0 @@
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/http_examples.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/https_examples.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/edit_cache.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/rebuild_cache.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/list_install_components.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/install.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/install/local.dir
-/home/kepuss/IdeaProjects/libsnark-fido-ac/include/http-server/build/CMakeFiles/install/strip.dir

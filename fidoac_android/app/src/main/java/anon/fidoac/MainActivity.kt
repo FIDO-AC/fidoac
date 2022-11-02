@@ -1,14 +1,24 @@
 package anon.fidoac
 
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import anon.fidoac.databinding.ActivityMainBinding
-import anon.fidoac.service.FIDOACService
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import java.io.BufferedInputStream
+import java.io.BufferedReader
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
+import kotlin.concurrent.thread
 
 //Sources.
 //https://fonts.google.com/icons?icon.query=home&icon.platform=android
@@ -20,6 +30,9 @@ class MainActivity : AppCompatActivity() {
 
     private var is_insession:Boolean = false
     public var session_server_challenge:ByteArray? = null
+
+    var proving_key:ByteArray = ByteArray(0)
+    var verfication_key:ByteArray = ByteArray(0)
 
     //Called afer oncreate and resuming after onstop
     override fun onStart() {
@@ -60,6 +73,35 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
 //        Integer.toString(snark_sha256())
+        val sharedPref = this.getSharedPreferences("zkproof_crs", Context.MODE_PRIVATE)
+        sharedPref?.let {
+            if (sharedPref.contains("PK") && sharedPref.contains("VK")) {
+                this.proving_key = Base64.getDecoder().decode(sharedPref.getString("PK", "")!!)
+                this.verfication_key = Base64.getDecoder().decode(sharedPref.getString("VK", "")!!)
+            } else {
+                // Instantiate the RequestQueue.
+                val queue = Volley.newRequestQueue(this)
+                val url = "https://fido.westeurope.cloudapp.azure.com/fidoac-server/trustedSetup.json"
+
+                // Request a string response from the provided URL.
+                val stringRequest = StringRequest(
+                    Request.Method.GET, url,
+                    Response.Listener<String> { response ->
+                        // Display the first 500 characters of the response string.
+                        Log.d(TAG,"Response is: ${response.substring(0, 500)}")
+                    },
+                    Response.ErrorListener {
+                        Log.e(TAG,"That didn't work!" + it.message + " \n" + it.stackTraceToString())
+                    }
+
+                )
+
+                //The above wont work because the server dint setup the certificate correctly. Instead we use hardcorded value here WLOG.
+
+            }
+        }
+
+        Log.d(TAG,"Proving Key Size:"+ this.proving_key.size)
     }
 
 

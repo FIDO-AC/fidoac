@@ -279,11 +279,12 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             Log.d(TAG,"DG1 Raw Byte Length:" + stateBasket.dg1_raw!!.size)
             val age_limit = 20
             stateBasket.proof_data = (this.requireActivity() as MainActivity).snark_sha256(stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_limit,
-                ByteArray(0), ranomizedHash)
+                (this.requireActivity() as MainActivity).proving_key, ranomizedHash)
+
 
             //Example verification for reference only. To be called on server side.
             ExampleVerifier.Companion.verify(ranomizedHash, stateBasket.relyingparty_challenge!!, signature, cert,
-                stateBasket.proof_data!!,age_limit, ByteArray(0))
+                stateBasket.proof_data!!,age_limit, (this.requireActivity() as MainActivity).verfication_key)
             Log.d(TAG,"Server Mock Verification (For testing) Completed")
 
             benchmarkCounter+=1

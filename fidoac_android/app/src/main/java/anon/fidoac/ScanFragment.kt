@@ -272,15 +272,12 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             val ranomizedHash = MessageDigest.getInstance("SHA-256").digest(stateBasket.sodFile!!.dataGroupHashes[1]!! + stateBasket.client_challenge!!)
             stateBasket.ranomized_hash = ranomizedHash
 
-            //TODO Pass in the correct proving key as second last parameter ie replace clientchallenge with PK
-            //TODO PAss in the correct verificaiton key for verification
             Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toHex())
             Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toString(Charsets.US_ASCII))
             Log.d(TAG,"DG1 Raw Byte Length:" + stateBasket.dg1_raw!!.size)
             val age_limit = 20
             stateBasket.proof_data = (this.requireActivity() as MainActivity).snark_sha256(stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_limit,
-                (this.requireActivity() as MainActivity).proving_key, ranomizedHash)
-
+                (this.requireActivity() as MainActivity).proving_key, ranomizedHash, (this.requireActivity() as MainActivity).verfication_key)
 
             //Example verification for reference only. To be called on server side.
             ExampleVerifier.Companion.verify(ranomizedHash, stateBasket.relyingparty_challenge!!, signature, cert,

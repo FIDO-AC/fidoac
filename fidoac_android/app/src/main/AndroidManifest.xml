@@ -20,6 +20,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Fidoac"
+        android:largeHeap="true"
         tools:targetApi="31">
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"

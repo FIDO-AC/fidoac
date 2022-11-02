@@ -74,6 +74,26 @@ class MainActivity : AppCompatActivity() {
 
 //        Integer.toString(snark_sha256())
         val sharedPref = this.getSharedPreferences("zkproof_crs", Context.MODE_PRIVATE)
+        if (false){ //Key Generation
+            var prov_key_ba :ByteArray = ByteArray(100000000) //~57,019,458
+            var verf_key_ba :ByteArray = ByteArray(100000) //~10,000
+            var array_sizes: IntArray = IntArray(2)
+            MainActivity.generate_trusted_setup(verf_key_ba,prov_key_ba,20, array_sizes)
+            Log.d(TAG,"Saving key")
+            val verf_key_ba_trimmed:ByteArray = ByteArray(array_sizes[0])
+            System.arraycopy(verf_key_ba,0,verf_key_ba_trimmed,0,verf_key_ba_trimmed.size)
+            val prov_key_ba_trimmed:ByteArray = ByteArray(array_sizes[1])
+            System.arraycopy(prov_key_ba,0,prov_key_ba_trimmed,0,prov_key_ba_trimmed.size)
+            assert( Arrays.equals( Base64.getDecoder().decode( String(Base64.getEncoder().encode(verf_key_ba_trimmed)) ), verf_key_ba_trimmed ) )
+            assert( Arrays.equals( Base64.getDecoder().decode( String(Base64.getEncoder().encode(prov_key_ba_trimmed)) ), prov_key_ba_trimmed ) )
+            sharedPref.edit().putString("VK", Base64.getEncoder().encodeToString(verf_key_ba_trimmed)).commit()
+            sharedPref.edit().putString("PK", Base64.getEncoder().encodeToString(prov_key_ba_trimmed)).commit()
+            assert(Arrays.equals( Base64.getDecoder().decode(sharedPref.getString("PK", "")!!), prov_key_ba_trimmed))
+            assert(Arrays.equals( Base64.getDecoder().decode(sharedPref.getString("VK", "")!!), verf_key_ba_trimmed))
+            //sharedPref.edit().putString("VK", Base64.getEncoder().encodeToString(verf_key_ba.slice(0..array_sizes[0]-1).toByteArray())).commit()
+            //sharedPref.edit().putString("PK", Base64.getEncoder().encodeToString(prov_key_ba.slice(0..array_sizes[1]-1).toByteArray())).commit()
+        }
+
         sharedPref?.let {
             if (sharedPref.contains("PK") && sharedPref.contains("VK")) {
                 this.proving_key = Base64.getDecoder().decode(sharedPref.getString("PK", "")!!)
@@ -89,16 +109,20 @@ class MainActivity : AppCompatActivity() {
                     Response.Listener<String> { response ->
                         // Display the first 500 characters of the response string.
                         Log.d(TAG,"Response is: ${response.substring(0, 500)}")
+                        //TODO Parse JSON
                     },
                     Response.ErrorListener {
                         Log.e(TAG,"That didn't work!" + it.message + " \n" + it.stackTraceToString())
                     }
 
                 )
+                queue.add(stringRequest)
 
-                //The above wont work because the server dint setup the certificate correctly. Instead we use hardcorded value here WLOG.
-
+                //Else we generate ourselves for testing purposes only.
             }
+            //Reset for testing purposes
+            //this.proving_key = ByteArray(0)
+            //this.verfication_key = ByteArray(0)
         }
 
         Log.d(TAG,"Proving Key Size:"+ this.proving_key.size)
@@ -112,7 +136,7 @@ class MainActivity : AppCompatActivity() {
     external fun stringFromJNI(): String
 
     external fun snark_sha256(dg1:ByteArray,cleintNonce:ByteArray,ageLimit:Int, provingKey:ByteArray,
-                              dg1_hash_for_testing:ByteArray): ByteArray
+                              dg1_hash_for_testing:ByteArray, verf_key_for_testing: ByteArray): ByteArray
 
 
 
@@ -122,6 +146,9 @@ class MainActivity : AppCompatActivity() {
             System.loadLibrary("fidoac")
         }
         external fun FIDO_AC_veirfy(zkproof:ByteArray, randomized_hash:ByteArray, ageLimit: Int, verificationKey:ByteArray) : Boolean
+
+        //This is used to
+        external fun generate_trusted_setup(verificationKey: ByteArray, provingKey: ByteArray, ageLimit: Int, arr_sizes:IntArray):Int
     }
 
 //    Use Live Detection instead of Intent Detection.

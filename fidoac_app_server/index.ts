@@ -302,11 +302,11 @@ app.post('/verify-authentication', async (req, res) => {
 
   res.send({ verified });
 });
-
+expectedOrigin = `https://${rpID}`;
 if (ENABLE_HTTPS) {
   const host = '0.0.0.0';
   const port = 8443;
-  expectedOrigin = `https://${rpID}`;
+
 
   https
     .createServer(
@@ -325,7 +325,6 @@ if (ENABLE_HTTPS) {
 } else {
   const host = '0.0.0.0';
   const port = 8000;
-  expectedOrigin = `http://localhost:${port}`;
 
   http.createServer(app).listen(port, host, () => {
     console.log(`🚀 Server ready at ${expectedOrigin} (${host}:${port})`);

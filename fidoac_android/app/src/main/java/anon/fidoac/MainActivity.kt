@@ -2,23 +2,25 @@ package anon.fidoac
 
 import android.content.Context
 import android.os.Bundle
+import android.os.StrictMode
 import android.util.Log
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import anon.fidoac.databinding.ActivityMainBinding
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
-import java.io.BufferedInputStream
-import java.io.BufferedReader
-import java.io.InputStream
-import java.io.InputStreamReader
+//import com.android.volley.Request
+//import com.android.volley.Response
+//import com.android.volley.toolbox.StringRequest
+//import com.android.volley.toolbox.Volley
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.*
 import kotlin.concurrent.thread
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.*
 
 //Sources.
 //https://fonts.google.com/icons?icon.query=home&icon.platform=android
@@ -34,11 +36,21 @@ class MainActivity : AppCompatActivity() {
     var proving_key:ByteArray = ByteArray(0)
     var verfication_key:ByteArray = ByteArray(0)
 
+    var origin = "None"
+    var request = "None"
+
+    var created =false
+
     //Called afer oncreate and resuming after onstop
     override fun onStart() {
         super.onStart()
         val challenge = this.intent?.data?.getQueryParameter("challenge")
-        if (challenge != null && !is_insession) {
+        val received_origin = this.intent?.data?.getQueryParameter("origin")
+        val received_request = "Age>=" + this.intent?.data?.getQueryParameter("ageQueryGT")
+        if (challenge != null && !is_insession && received_origin!=null && received_request!=null) {
+            Log.d(TAG,received_origin)
+            Log.d(TAG,received_request)
+
             Log.d(TAG,challenge)
             val decodedChallengeByteArray: ByteArray =
                 Base64.getDecoder().decode(challenge)
@@ -48,6 +60,9 @@ class MainActivity : AppCompatActivity() {
             //val mIntent = Intent(this, FIDOACService::class.java)
             //mIntent.putExtra("challenge", challenge)
             //startService(mIntent)
+
+            this.origin = received_origin
+            this.request = received_request
         } else {
             Log.i("FIDOAC", "Challenge not found")
             if (!is_insession){
@@ -72,9 +87,14 @@ class MainActivity : AppCompatActivity() {
         //Disable temporary because UI is not adaptive to dark mode.
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
+        if (created){
+            return
+        }
+        created= true
+
 //        Integer.toString(snark_sha256())
         val sharedPref = this.getSharedPreferences("zkproof_crs", Context.MODE_PRIVATE)
-        if (false){ //Key Generation
+        if (false){ //Key Generation for testing purpose only
             var prov_key_ba :ByteArray = ByteArray(100000000) //~57,019,458
             var verf_key_ba :ByteArray = ByteArray(100000) //~10,000
             var array_sizes: IntArray = IntArray(2)
@@ -95,30 +115,35 @@ class MainActivity : AppCompatActivity() {
         }
 
         sharedPref?.let {
-            if (sharedPref.contains("PK") && sharedPref.contains("VK")) {
+            if (sharedPref.contains("PK") && sharedPref.contains("VK")) { //
                 this.proving_key = Base64.getDecoder().decode(sharedPref.getString("PK", "")!!)
                 this.verfication_key = Base64.getDecoder().decode(sharedPref.getString("VK", "")!!)
             } else {
                 // Instantiate the RequestQueue.
-                val queue = Volley.newRequestQueue(this)
-                val url = "https://fido.westeurope.cloudapp.azure.com/fidoac-server/trustedSetup.json"
-
-                // Request a string response from the provided URL.
-                val stringRequest = StringRequest(
-                    Request.Method.GET, url,
-                    Response.Listener<String> { response ->
-                        // Display the first 500 characters of the response string.
-                        Log.d(TAG,"Response is: ${response.substring(0, 500)}")
-                        //TODO Parse JSON
-                    },
-                    Response.ErrorListener {
-                        Log.e(TAG,"That didn't work!" + it.message + " \n" + it.stackTraceToString())
+                val url = "https://fido.westeurope.cloudapp.azure.com/trustedsetup.json"
+                //Synchronous Request for now.
+                val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
+                StrictMode.setThreadPolicy(policy)
+                val client : OkHttpClient = OkHttpClient();
+                val request = Request.Builder()
+                    .url(url)
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                    for ((name, value) in response.headers) {
+                        Log.d(TAG,"$name: $value")
                     }
-
-                )
-                queue.add(stringRequest)
-
-                //Else we generate ourselves for testing purposes only.
+                    Log.d(TAG,"Parsing JSON")
+                    val res = Json.decodeFromString<Map<String, String>>(response.body!!.string())
+                    Log.d(TAG, response.body!!.string())
+                    Log.d(TAG,"Saving to Shared Pref")
+                    sharedPref.edit().putString("VK", res["PK"]).commit()
+                    sharedPref.edit().putString("PK", res["VK"]).commit()
+                    Log.d(TAG,"Testing Equality")
+                    assert( Arrays.equals( Base64.getDecoder().decode(res["PK"]),  Base64.getDecoder().decode(sharedPref.getString("PK", "")!!)))
+                    assert( Arrays.equals( Base64.getDecoder().decode(res["VK"]),  Base64.getDecoder().decode(sharedPref.getString("VK", "")!!)))
+                }
+                Log.d(TAG,"Requesting URL")
             }
             //Reset for testing purposes
             //this.proving_key = ByteArray(0)

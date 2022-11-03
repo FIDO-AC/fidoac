@@ -95,6 +95,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
         return BACKey(documentNumber,birthDate, expiryDate)
     }
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -138,6 +139,11 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
 
     override fun onResume() {
         super.onResume()
+
+
+        this.binding.textviewOrigin.text = (this.requireActivity() as MainActivity).origin
+        this.binding.textviewRequest.text = (this.requireActivity() as MainActivity).request
+
     }
 
     override fun onPause() {

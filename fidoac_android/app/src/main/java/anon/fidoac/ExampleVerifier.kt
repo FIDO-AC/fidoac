@@ -4,7 +4,6 @@ import android.util.Log
 import anon.fidoac.certverifier.AndroidKeyAttestationVerifier
 import java.io.ByteArrayInputStream
 import java.io.InputStream
-import java.security.MessageDigest
 import java.security.Signature
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate

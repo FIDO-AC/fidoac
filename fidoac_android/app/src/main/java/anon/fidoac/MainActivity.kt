@@ -1,14 +1,26 @@
 package anon.fidoac
 
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
+import android.os.StrictMode
 import android.util.Log
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import anon.fidoac.databinding.ActivityMainBinding
-import anon.fidoac.service.FIDOACService
+//import com.android.volley.Request
+//import com.android.volley.Response
+//import com.android.volley.toolbox.StringRequest
+//import com.android.volley.toolbox.Volley
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.*
+import kotlin.concurrent.thread
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.*
 
 //Sources.
 //https://fonts.google.com/icons?icon.query=home&icon.platform=android
@@ -21,11 +33,24 @@ class MainActivity : AppCompatActivity() {
     private var is_insession:Boolean = false
     public var session_server_challenge:ByteArray? = null
 
+    var proving_key:ByteArray = ByteArray(0)
+    var verfication_key:ByteArray = ByteArray(0)
+
+    var origin = "None"
+    var request = "None"
+
+    var created =false
+
     //Called afer oncreate and resuming after onstop
     override fun onStart() {
         super.onStart()
         val challenge = this.intent?.data?.getQueryParameter("challenge")
-        if (challenge != null && !is_insession) {
+        val received_origin = this.intent?.data?.getQueryParameter("origin")
+        val received_request = "Age>=" + this.intent?.data?.getQueryParameter("ageQueryGT")
+        if (challenge != null && !is_insession && received_origin!=null && received_request!=null) {
+            Log.d(TAG,received_origin)
+            Log.d(TAG,received_request)
+
             Log.d(TAG,challenge)
             val decodedChallengeByteArray: ByteArray =
                 Base64.getDecoder().decode(challenge)
@@ -35,6 +60,9 @@ class MainActivity : AppCompatActivity() {
             //val mIntent = Intent(this, FIDOACService::class.java)
             //mIntent.putExtra("challenge", challenge)
             //startService(mIntent)
+
+            this.origin = received_origin
+            this.request = received_request
         } else {
             Log.i("FIDOAC", "Challenge not found")
             if (!is_insession){
@@ -59,7 +87,70 @@ class MainActivity : AppCompatActivity() {
         //Disable temporary because UI is not adaptive to dark mode.
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
+        if (created){
+            return
+        }
+        created= true
+
 //        Integer.toString(snark_sha256())
+        val sharedPref = this.getSharedPreferences("zkproof_crs", Context.MODE_PRIVATE)
+        if (false){ //Key Generation for testing purpose only
+            var prov_key_ba :ByteArray = ByteArray(100000000) //~57,019,458
+            var verf_key_ba :ByteArray = ByteArray(100000) //~10,000
+            var array_sizes: IntArray = IntArray(2)
+            MainActivity.generate_trusted_setup(verf_key_ba,prov_key_ba,20, array_sizes)
+            Log.d(TAG,"Saving key")
+            val verf_key_ba_trimmed:ByteArray = ByteArray(array_sizes[0])
+            System.arraycopy(verf_key_ba,0,verf_key_ba_trimmed,0,verf_key_ba_trimmed.size)
+            val prov_key_ba_trimmed:ByteArray = ByteArray(array_sizes[1])
+            System.arraycopy(prov_key_ba,0,prov_key_ba_trimmed,0,prov_key_ba_trimmed.size)
+            assert( Arrays.equals( Base64.getDecoder().decode( String(Base64.getEncoder().encode(verf_key_ba_trimmed)) ), verf_key_ba_trimmed ) )
+            assert( Arrays.equals( Base64.getDecoder().decode( String(Base64.getEncoder().encode(prov_key_ba_trimmed)) ), prov_key_ba_trimmed ) )
+            sharedPref.edit().putString("VK", Base64.getEncoder().encodeToString(verf_key_ba_trimmed)).commit()
+            sharedPref.edit().putString("PK", Base64.getEncoder().encodeToString(prov_key_ba_trimmed)).commit()
+            assert(Arrays.equals( Base64.getDecoder().decode(sharedPref.getString("PK", "")!!), prov_key_ba_trimmed))
+            assert(Arrays.equals( Base64.getDecoder().decode(sharedPref.getString("VK", "")!!), verf_key_ba_trimmed))
+            //sharedPref.edit().putString("VK", Base64.getEncoder().encodeToString(verf_key_ba.slice(0..array_sizes[0]-1).toByteArray())).commit()
+            //sharedPref.edit().putString("PK", Base64.getEncoder().encodeToString(prov_key_ba.slice(0..array_sizes[1]-1).toByteArray())).commit()
+        }
+
+        sharedPref?.let {
+            if (sharedPref.contains("PK") && sharedPref.contains("VK")) { //
+                this.proving_key = Base64.getDecoder().decode(sharedPref.getString("PK", "")!!)
+                this.verfication_key = Base64.getDecoder().decode(sharedPref.getString("VK", "")!!)
+            } else {
+                // Instantiate the RequestQueue.
+                val url = "https://fido.westeurope.cloudapp.azure.com/trustedsetup.json"
+                //Synchronous Request for now.
+                val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
+                StrictMode.setThreadPolicy(policy)
+                val client : OkHttpClient = OkHttpClient();
+                val request = Request.Builder()
+                    .url(url)
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                    for ((name, value) in response.headers) {
+                        Log.d(TAG,"$name: $value")
+                    }
+                    Log.d(TAG,"Parsing JSON")
+                    val res = Json.decodeFromString<Map<String, String>>(response.body!!.string())
+                    Log.d(TAG, response.body!!.string())
+                    Log.d(TAG,"Saving to Shared Pref")
+                    sharedPref.edit().putString("VK", res["PK"]).commit()
+                    sharedPref.edit().putString("PK", res["VK"]).commit()
+                    Log.d(TAG,"Testing Equality")
+                    assert( Arrays.equals( Base64.getDecoder().decode(res["PK"]),  Base64.getDecoder().decode(sharedPref.getString("PK", "")!!)))
+                    assert( Arrays.equals( Base64.getDecoder().decode(res["VK"]),  Base64.getDecoder().decode(sharedPref.getString("VK", "")!!)))
+                }
+                Log.d(TAG,"Requesting URL")
+            }
+            //Reset for testing purposes
+            //this.proving_key = ByteArray(0)
+            //this.verfication_key = ByteArray(0)
+        }
+
+        Log.d(TAG,"Proving Key Size:"+ this.proving_key.size)
     }
 
 
@@ -70,7 +161,7 @@ class MainActivity : AppCompatActivity() {
     external fun stringFromJNI(): String
 
     external fun snark_sha256(dg1:ByteArray,cleintNonce:ByteArray,ageLimit:Int, provingKey:ByteArray,
-                              dg1_hash_for_testing:ByteArray): ByteArray
+                              dg1_hash_for_testing:ByteArray, verf_key_for_testing: ByteArray): ByteArray
 
 
 
@@ -80,6 +171,9 @@ class MainActivity : AppCompatActivity() {
             System.loadLibrary("fidoac")
         }
         external fun FIDO_AC_veirfy(zkproof:ByteArray, randomized_hash:ByteArray, ageLimit: Int, verificationKey:ByteArray) : Boolean
+
+        //This is used to
+        external fun generate_trusted_setup(verificationKey: ByteArray, provingKey: ByteArray, ageLimit: Int, arr_sizes:IntArray):Int
     }
 
 //    Use Live Detection instead of Intent Detection.

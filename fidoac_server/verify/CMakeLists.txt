@@ -17,6 +17,6 @@ else()
             ../depends/libsnark
     )
     configure_file(DG1_clean.bin DG1_clean.bin COPYONLY)
-    add_executable(verify main.cpp)
+    add_executable(verify main.cpp proof.cpp proof.h)
     target_link_libraries(verify libsnark-fido-ac nlohmann_json::nlohmann_json)
 endif()

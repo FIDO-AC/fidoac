@@ -9,6 +9,20 @@ cmake_minimum_required(VERSION 3.18.1)
 
 project("fidoac")
 
+#add_library( # Sets the name of the library.
+#        fidoacverify
+#
+#        # Sets the library as a shared library.
+#        SHARED
+#
+#        # Provides a relative path to your source file(s).
+#        fidoac_verify.cpp)
+#
+#add_executable( # Sets the name of the exe.
+#        mainexe
+#        # Provides a relative path to your source file(s).
+#        mainexe.cpp)
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -64,3 +78,11 @@ include_directories(
 target_link_libraries(fidoac
 
         example)
+
+#target_link_libraries(fidoacverify
+#
+#        example)
+#
+#target_link_libraries(mainexe
+#
+#        example)

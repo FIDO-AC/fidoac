@@ -1,5 +1,6 @@
 package anon.fidoac
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.nfc.NfcAdapter
@@ -23,15 +24,10 @@ import com.google.android.material.tabs.TabLayout
 import org.jmrtd.BACKey
 import org.jmrtd.BACKeySpec
 import org.jmrtd.PACEKeySpec
-import java.io.ByteArrayInputStream
-import java.io.InputStream
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Certificate
 import java.util.*
-import kotlin.math.sign
 
 //TODO display information about incoming stuff
 
@@ -296,7 +292,30 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                 Log.d(TAG,"Loop:" + benchmarkCounter)
                 startScanning()
             }
+
+            saveDataToDiskForTesting(this.stateBasket);
+
             sendDataToHTMLServer(this.stateBasket)
+        }
+
+    }
+
+    private fun saveDataToDiskForTesting(stateBasket: StateBasket){
+        val sharedPref = this.requireActivity().getSharedPreferences("verf_test_case", Context.MODE_PRIVATE)
+        assert(sharedPref !=null)
+        sharedPref.edit().putString("challenge", Base64.getEncoder().encodeToString(stateBasket.relyingparty_challenge!!)).commit()
+        sharedPref.edit().putString("proof", Base64.getEncoder().encodeToString(stateBasket.proof_data!!)).commit()
+        sharedPref.edit().putString("hash", Base64.getEncoder().encodeToString(stateBasket.ranomized_hash!!)).commit()
+        sharedPref.edit().putString("mediator_sign", Base64.getEncoder().encodeToString(stateBasket.mediator_sign!!) ).commit()
+
+        var certBase64Array = ArrayList<String>()
+        for (cert in stateBasket.mediator_cert!!){
+            certBase64Array.add(Base64.getEncoder().encodeToString(cert))
+        }
+        var counter=0
+        for (cert in certBase64Array) {
+            sharedPref.edit().putString("mediator_cert_"+counter, cert ).commit()
+            counter += 1
         }
 
     }

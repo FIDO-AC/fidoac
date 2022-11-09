@@ -4,11 +4,17 @@
     package="anon.fidoac">
 
     <uses-permission android:name="android.permission.NFC" />
-    <uses-feature android:name="android.hardware.nfc" android:required="true" />
+
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="true" />
+
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <uses-feature android:name="android.hardware.camera.any" />
+
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
@@ -17,43 +23,61 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:largeHeap="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Fidoac"
-        android:largeHeap="true"
         tools:targetApi="31">
+        <activity
+            android:name=".VerifyActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="anon.fidoac.VERIFY" />
+            </intent-filter>
+        </activity>
+
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="ocr" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="anon.fidoac.START_SERVICE" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:host="fidoacsource.z13.web.core.windows.net"
-                    android:scheme="https"/>
-                <!--The above is just an arbitrary choice for a http domain name.-->
+
+                <data
+                    android:host="fidoacsource.z13.web.core.windows.net"
+                    android:scheme="https" />
+                <!-- The above is just an arbitrary choice for a http domain name. -->
             </intent-filter>
-<!--            <intent-filter>-->
-<!--                <action android:name="android.nfc.action.TECH_DISCOVERED"/>-->
-<!--            </intent-filter>-->
-            <meta-data android:name="android.nfc.action.TECH_DISCOVERED"
+            <!-- <intent-filter> -->
+            <!-- <action android:name="android.nfc.action.TECH_DISCOVERED"/> -->
+            <!-- </intent-filter> -->
+            <meta-data
+                android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/nfc_tech_list" />
         </activity>
-
-<!--        <activity android:name=".service.FIDOACActivity" android:exported="true" android:autoVerify="true">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.VIEW"/>-->
-<!--                <category android:name="android.intent.category.DEFAULT"/>-->
-<!--                <category android:name="android.intent.category.BROWSABLE"/>-->
-<!--                <data android:host="fidoacsource.z13.web.core.windows.net" android:scheme="https"/>-->
-<!--            </intent-filter>-->
-<!--        </activity>-->
-        <service android:name=".service.FIDOACService"/>
+        <!-- <receiver android:name=".service.ZKPBroadcastReceiver" android:exported="true" -->
+        <!-- android:enabled="true"> -->
+        <!-- <intent-filter> -->
+        <!-- <action android:name="ZKP_VERIFY" /> -->
+        <!-- </intent-filter> -->
+        <!-- </receiver> -->
+        <!-- <activity android:name=".service.FIDOACActivity" android:exported="true" android:autoVerify="true"> -->
+        <!-- <intent-filter> -->
+        <!-- <action android:name="android.intent.action.VIEW"/> -->
+        <!-- <category android:name="android.intent.category.DEFAULT"/> -->
+        <!-- <category android:name="android.intent.category.BROWSABLE"/> -->
+        <!-- <data android:host="fidoacsource.z13.web.core.windows.net" android:scheme="https"/> -->
+        <!-- </intent-filter> -->
+        <!-- </activity> -->
+        <service android:name=".service.FIDOACService" />
     </application>
 
 </manifest>

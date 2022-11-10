@@ -135,7 +135,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     Log.d(TAG,"Parsing JSON")
                     val res = Json.decodeFromString<Map<String, String>>(response.body!!.string())
-                    Log.d(TAG, response.body!!.string())
+                    //Log.d(TAG, response.body!!.string())
                     Log.d(TAG,"Saving to Shared Pref")
                     sharedPref.edit().putString("PK", res["PK"]).commit()
                     sharedPref.edit().putString("VK", res["VK"]).commit()

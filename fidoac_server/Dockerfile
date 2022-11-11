@@ -32,7 +32,9 @@ RUN apt install unzip
 RUN apt install default-jre -y
 RUN apt install default-jdk -y
 # RUN apt install libc6:i386 libncurses5:i386 libstdc++6:i386 lib32z1 libbz2-1.0:i386 -y
-COPY androidtools.zip .
+# COPY androidtools.zip .
+RUN apt-get install wget -y
+RUN wget -O androidtools.zip https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
 RUN unzip androidtools.zip
 # Folder Structure : android_sdk/cmdline-tools/latest/(all files here)
 RUN mkdir /android_sdk

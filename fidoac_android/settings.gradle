@@ -13,5 +13,5 @@ dependencyResolutionManagement {
         maven { url "https://nexus.coppernic.fr/repository/libs-release" }
     }
 }
-rootProject.name = "fidoac"
+rootProject.name = "fidoac_androidapp"
 include ':app'

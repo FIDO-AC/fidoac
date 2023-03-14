@@ -12,8 +12,6 @@ import android.widget.CheckBox
 import android.widget.EditText
 import androidx.annotation.RequiresApi
 import androidx.core.util.Pair
-import com.google.protobuf.ByteString
-import com.google.protobuf.InvalidProtocolBufferException
 //import logoverwrite.Log
 import net.sf.scuba.smartcards.CardServiceException
 import net.sf.scuba.smartcards.CommandAPDU
@@ -76,6 +74,8 @@ class StateBasket
     var client_challenge:ByteArray? = null
     var proof_data:ByteArray? = null
     var ranomized_hash:ByteArray? = null
+    var age_gt:Int = 0
+    var cur_year:Int = 0
     var mediator_sign:ByteArray? = null
     var mediator_cert:ArrayList<ByteArray>? = null
     var bacKey: BACKey? = null

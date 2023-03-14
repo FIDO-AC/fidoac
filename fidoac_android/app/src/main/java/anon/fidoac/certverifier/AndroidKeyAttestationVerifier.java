@@ -1,14 +1,10 @@
 package anon.fidoac.certverifier;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-
 import static anon.fidoac.certverifier.Constants.GOOGLE_ROOT_CERTIFICATE;
 import static anon.fidoac.certverifier.ParsedAttestationRecord.createParsedAttestationRecord;
 
-import android.os.Build;
 import android.util.Log;
-
-import androidx.annotation.RequiresApi;
 
 import org.bouncycastle.util.encoders.Base64;
 

@@ -1,6 +1,5 @@
 package anon.fidoac
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.nfc.NfcAdapter
@@ -24,10 +23,15 @@ import com.google.android.material.tabs.TabLayout
 import org.jmrtd.BACKey
 import org.jmrtd.BACKeySpec
 import org.jmrtd.PACEKeySpec
+import java.io.ByteArrayInputStream
+import java.io.InputStream
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import java.util.*
+import kotlin.math.sign
 
 //TODO display information about incoming stuff
 
@@ -91,7 +95,6 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
         return BACKey(documentNumber,birthDate, expiryDate)
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
@@ -135,11 +138,6 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
 
     override fun onResume() {
         super.onResume()
-
-
-        this.binding.textviewOrigin.text = (this.requireActivity() as MainActivity).origin
-        this.binding.textviewRequest.text = (this.requireActivity() as MainActivity).request
-
     }
 
     override fun onPause() {
@@ -170,7 +168,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
         this.stateBasket.paceKey = paceKey
         this.stateBasket.context = this.requireContext()
         this.stateBasket.relyingparty_challenge = (this.requireActivity() as MainActivity).session_server_challenge
-        val client_nonce = ByteArray(16)
+        val client_nonce = ByteArray(32)
         SecureRandom.getInstanceStrong().nextBytes(client_nonce)
         this.stateBasket.client_challenge = client_nonce
         if (mNfcAdapter != null) {
@@ -226,15 +224,17 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
     private fun sendDataToHTMLServer(stateBasket: StateBasket){
         //We use base64 string here for Json file transfer.
         val mIntent = Intent(this.requireActivity(), FIDOACService::class.java)
-        mIntent.putExtra("challenge", Base64.getEncoder().encodeToString(stateBasket.relyingparty_challenge!!))
-        mIntent.putExtra("proof", Base64.getEncoder().encodeToString(stateBasket.proof_data!!))
-        mIntent.putExtra("hash", Base64.getEncoder().encodeToString(stateBasket.ranomized_hash!!))
-        mIntent.putExtra("mediator_sign", Base64.getEncoder().encodeToString(stateBasket.mediator_sign!!) )
+        mIntent.putExtra(FileManager.SERVER_CHALLENGE_ID, Base64.getUrlEncoder().encodeToString(stateBasket.relyingparty_challenge!!))
+        mIntent.putExtra(FileManager.PROOF_ID, Base64.getUrlEncoder().encodeToString(stateBasket.proof_data!!))
+        mIntent.putExtra(FileManager.HASH_ID, Base64.getUrlEncoder().encodeToString(stateBasket.ranomized_hash!!))
+        mIntent.putExtra(FileManager.AGEGT_ID, stateBasket.age_gt)
+        mIntent.putExtra(FileManager.CURYEAR_ID, stateBasket.cur_year)
+        mIntent.putExtra(FileManager.MEDIATOR_SIGNATURE_ID, Base64.getUrlEncoder().encodeToString(stateBasket.mediator_sign!!) )
         var certBase64Array = ArrayList<String>()
         for (cert in stateBasket.mediator_cert!!){
-            certBase64Array.add(Base64.getEncoder().encodeToString(cert))
+            certBase64Array.add(Base64.getUrlEncoder().encodeToString(cert))
         }
-        mIntent.putStringArrayListExtra("mediator_cert", certBase64Array)
+        mIntent.putStringArrayListExtra(FileManager.MEDIATOR_CERT_ID, certBase64Array)
         this.requireActivity().startService(mIntent)
 
         //TODO have the response back from server and so on, and close the app
@@ -274,17 +274,21 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             val ranomizedHash = MessageDigest.getInstance("SHA-256").digest(stateBasket.sodFile!!.dataGroupHashes[1]!! + stateBasket.client_challenge!!)
             stateBasket.ranomized_hash = ranomizedHash
 
+            //TODO port this part
             Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toHex())
             Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toString(Charsets.US_ASCII))
             Log.d(TAG,"DG1 Raw Byte Length:" + stateBasket.dg1_raw!!.size)
-            val age_limit = 20
-            stateBasket.proof_data = (this.requireActivity() as MainActivity).snark_sha256(stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_limit,
-                (this.requireActivity() as MainActivity).proving_key, ranomizedHash, (this.requireActivity() as MainActivity).verfication_key)
-
-            //Example verification for reference only. To be called on server side.
-            ExampleVerifier.Companion.verify(ranomizedHash, stateBasket.relyingparty_challenge!!, signature, cert,
-                stateBasket.proof_data!!,age_limit, (this.requireActivity() as MainActivity).verfication_key)
-            Log.d(TAG,"Server Mock Verification (For testing) Completed")
+            Log.d(TAG,"DG1 Hashes Stored in Passport:" + stateBasket.sodFile!!.dataGroupHashes[1]!!.toHex())
+            Log.d(TAG,"DG1 From Calculation:" + MessageDigest.getInstance("SHA-256").digest(stateBasket.dg1_raw!!).toHex() )
+            val age_min = 20
+            val cur_year = 23
+            this.stateBasket.age_gt = age_min
+            this.stateBasket.cur_year= cur_year
+            val (pk,vk) = FileManager.Companion.loadPVKeys()!!
+            val mainAct = (this.requireActivity() as MainActivity)
+            mainAct.rust_fidoacprove(this.requireActivity(),pk,vk,stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_min, cur_year)
+            stateBasket.proof_data = mainAct.getProof()
+//            Log.d(TAG,"Server Mock Verification (For testing) Completed")
 
             benchmarkCounter+=1
             if (benchmarkCounter <benchmarkThreshold){
@@ -292,30 +296,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
                 Log.d(TAG,"Loop:" + benchmarkCounter)
                 startScanning()
             }
-
-            saveDataToDiskForTesting(this.stateBasket);
-
             sendDataToHTMLServer(this.stateBasket)
-        }
-
-    }
-
-    private fun saveDataToDiskForTesting(stateBasket: StateBasket){
-        val sharedPref = this.requireActivity().getSharedPreferences("verf_test_case", Context.MODE_PRIVATE)
-        assert(sharedPref !=null)
-        sharedPref.edit().putString("challenge", Base64.getEncoder().encodeToString(stateBasket.relyingparty_challenge!!)).commit()
-        sharedPref.edit().putString("proof", Base64.getEncoder().encodeToString(stateBasket.proof_data!!)).commit()
-        sharedPref.edit().putString("hash", Base64.getEncoder().encodeToString(stateBasket.ranomized_hash!!)).commit()
-        sharedPref.edit().putString("mediator_sign", Base64.getEncoder().encodeToString(stateBasket.mediator_sign!!) ).commit()
-
-        var certBase64Array = ArrayList<String>()
-        for (cert in stateBasket.mediator_cert!!){
-            certBase64Array.add(Base64.getEncoder().encodeToString(cert))
-        }
-        var counter=0
-        for (cert in certBase64Array) {
-            sharedPref.edit().putString("mediator_cert_"+counter, cert ).commit()
-            counter += 1
         }
 
     }

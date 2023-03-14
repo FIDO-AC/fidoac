@@ -1,0 +1,51 @@
+[package]
+name = "rust"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rust"
+crate_type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+jni = "0.5.2"
+
+# android-logd-logger = "0.3.2"
+log = "0.4"
+
+android_logger = "0.12"
+
+ark-ff = { version = "^0.4.0", default-features = false }
+ark-ec = { version = "^0.4.0", default-features = false, features=["std"] }
+ark-ed-on-bls12-381 = { version = "^0.4.0", features = ["r1cs"] }
+ark-bls12-381 = { version = "^0.4.0" }
+ark-std = { version = "^0.4.0", default-features = false }
+ark-relations = { version = "^0.4.0", default-features = false, optional = true }
+ark-r1cs-std = { version = "^0.4.0", optional = true, default-features = false }
+ark-snark = { version = "^0.4.0", default-features = false }
+ark-groth16 = { version = "^0.4.0" }
+# ark-groth16  = { version="0.4.0", path = "../groth16" }
+# ark-gm17 = { version = "^0.4.0" }
+ark-serialize = { version = "^0.4.0", default-features = false, features=["derive"] }
+ark-crypto-primitives = { version = "^0.4.0", default-features = true, features = ["crh"]}
+digest = "0.9"
+tracing = { version = "0.1", default-features = false, features = [ "attributes" ] }
+tracing-subscriber = { version = "0.2" }
+derivative = { version = "2.0", features = ["use_core"] }
+
+rand_chacha = {version = "0.3.1"}
+rand_core = {version = "0.6.4"}
+rand = {version= "0.8.5"}
+hex = "0.4"
+
+serde_json = "1.0"
+base64 = "0.21"
+
+[features]
+default = [ "std", "parallel", "r1cs" ]
+std = [ "ark-ff/std", "ark-ec/std", "ark-std/std", "ark-relations/std", "ark-serialize/std", "ark-crypto-primitives/std" ]
+r1cs = [ "ark-relations", "ark-r1cs-std", "ark-crypto-primitives/r1cs" ]
+parallel = [ "std", "ark-ff/parallel", "ark-ec/parallel", "ark-std/parallel" ]
+

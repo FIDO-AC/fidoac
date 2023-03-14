@@ -9,9 +9,10 @@ import androidx.annotation.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+
+import anon.fidoac.FileManager;
 
 public class FIDOACService extends Service {
 
@@ -19,23 +20,27 @@ public class FIDOACService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        String challenge = intent.getStringExtra("challenge");
-        String proof = intent.getStringExtra("proof");
-        String hash = intent.getStringExtra("hash");
-        String sign = intent.getStringExtra("mediator_sign");
-        ArrayList<String> certs = intent.getStringArrayListExtra("mediator_cert");
+        String challenge = intent.getStringExtra(FileManager.SERVER_CHALLENGE_ID);
+        String proof = intent.getStringExtra(FileManager.PROOF_ID);
+        String hash = intent.getStringExtra(FileManager.HASH_ID);
+        String sign = intent.getStringExtra(FileManager.MEDIATOR_SIGNATURE_ID);
+        int age_gt = intent.getIntExtra(FileManager.AGEGT_ID, 0);
+        int cur_year = intent.getIntExtra(FileManager.CURYEAR_ID, 0);
+        ArrayList<String> certs = intent.getStringArrayListExtra(FileManager.MEDIATOR_CERT_ID);
 
-        Log.i("FIDOAC","Challenge "+challenge);
+        Log.i("FIDOAC","Challenge: "+challenge);
 
         try {
             Map<String, String> data = new HashMap<>();
-            data.put("client_zkproof",proof);
-            data.put("relying_party_challenge",challenge);
-            data.put("client_randomized_hash", hash);
-            data.put("mediator_sign", sign);
+            data.put(FileManager.PROOF_ID,proof);
+            data.put(FileManager.SERVER_CHALLENGE_ID,challenge);
+            data.put(FileManager.HASH_ID, hash);
+            data.put(FileManager.AGEGT_ID, Integer.toString(age_gt));
+            data.put(FileManager.CURYEAR_ID, Integer.toString(cur_year));
+            data.put(FileManager.MEDIATOR_SIGNATURE_ID, sign);
             int counter=0;
             for (String cert : certs){
-                data.put("mediator_cert_"+counter, cert);
+                data.put(FileManager.MEDIATOR_CERT_ID+"_"+counter, cert);
                 counter+=1;
             }
 

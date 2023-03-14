@@ -161,7 +161,7 @@ FidoAC.getUserDecision = async function() {
 
 FidoAC.handleFidoACExtension = async function(arguments) {
     let challenge = arguments["0"].publicKey.challenge
-    let challengeBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(challenge)))
+    let challengeBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(challenge))).replaceAll("+","-").replaceAll("/","_")
     console.debug("User selected FIDO AC")
     let acDataPromise =  FidoAC.callFidoAc(challengeBase64)
     FidoAC.createOpenAppModal(challengeBase64)

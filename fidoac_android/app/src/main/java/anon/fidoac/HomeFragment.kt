@@ -106,6 +106,9 @@ class HomeFragment : Fragment() {
             viewpagger.setCurrentItem(tab.position, true)
         }.attach()
 
+
+        Log.d(TAG,"HomeFragment Created View")
+
         return binding.root
     }
 

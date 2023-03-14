@@ -44,8 +44,9 @@ public class HttpServer extends NanoHTTPD {
 
         if(data != null && session.getParameters().get("challenge").get(0).equals(this.challenge)) {
             try {
-                Log.i("FIDOAC","Serving data");
+                Log.i("FIDOAC Callback","Serving data");
                 String dataJson = new ObjectMapper().writeValueAsString(data);
+                Log.d("FIDOAC Callback", "Sending " + dataJson);
                 isFetched = true;
                 Response resp =  newFixedLengthResponse(Response.Status.OK, "application/json", dataJson);
                 resp.addHeader("Cache-Control","no-cache, no-store, must-revalidate");

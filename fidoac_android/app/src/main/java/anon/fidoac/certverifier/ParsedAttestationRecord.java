@@ -13,8 +13,6 @@ import static anon.fidoac.certverifier.Constants.SW_ENFORCED_INDEX;
 import static anon.fidoac.certverifier.Constants.TEE_ENFORCED_INDEX;
 import static anon.fidoac.certverifier.Constants.UNIQUE_ID_INDEX;
 
-import android.os.Build;
-
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;

@@ -9,7 +9,6 @@
     android:padding="30dp"
     tools:context=".ScanFragment">
 
-    <!-- TODO: Update blank fragment layout -->
     <TextView
         android:id="@+id/instruction_info"
         android:layout_width="wrap_content"

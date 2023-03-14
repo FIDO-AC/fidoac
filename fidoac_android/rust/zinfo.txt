@@ -7,7 +7,7 @@ In rustroot ():
 Build ServerBinary
 cargo build --bins --release
 
-cargo run --release rust 
+cargo run --release verificationkey sample_input.json 
 
 Run Tests
 cargo test -- --nocapture

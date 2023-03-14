@@ -56,20 +56,23 @@ fn main() {
     // trusted_setup();
     let args: Vec<String> = env::args().collect();
     if args.len() <3 {
-        println!("Please supply the json file and verification_key file for verification.");
+        println!("Please supply the verification_key file for verification. Then Supply json_string");
         return
     }
-    let file_name = &args[1];
+
+    let vf_file_name = &args[1];
+    let mut vf_file = File::open(vf_file_name).unwrap();
+    let mut vk_bytes = Vec::new();
+    vf_file.read_to_end(&mut vk_bytes).unwrap();
+
+    let file_name = &args[2];
     println!("Loading File : {}", file_name);
     let mut file = File::open(file_name).unwrap();
     let mut json_string: String = String::new();
     file.read_to_string(&mut json_string).unwrap();
+    // let mut json_string = &args[2];
+    // println!("{}",json_string);
     let  (proof_bytes, digest_bytes,age_gt,cur_year) = parse_fidoac_json(&json_string);
-
-    let vf_file_name = &args[2];
-    let mut vf_file = File::open(vf_file_name).unwrap();
-    let mut vk_bytes = Vec::new();
-    vf_file.read_to_end(&mut vk_bytes).unwrap();
 
     let _is_verified = verify_proof(vk_bytes, proof_bytes, digest_bytes, age_gt, cur_year);
 

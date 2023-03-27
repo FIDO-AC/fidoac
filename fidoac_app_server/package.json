@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon index.ts",
     "build": "tsc",
-    "postbuild": "cp -R public dist/public && cp *.json dist/"
+    "postbuild": "cp -R public dist/public && cp *.json dist/ && cp -R node_modules dist/"
   },
   "keywords": [],
   "author": "",

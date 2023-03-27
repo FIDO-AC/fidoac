@@ -7,8 +7,9 @@
     "declaration": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "outDir": "dist"
+    "strict": false,
+    "outDir": "dist",
+    "noImplicitAny": false
   },
   "exclude": [
     "node_modules",

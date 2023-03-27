@@ -22,7 +22,7 @@ FidoAC.getDeepLink = function (appid, challenge, origin, ageQueryGT){
 FidoAC.callFidoAc = function(challenge) {
 
     if (this.config.mockFidoAc) {
-        return new Promise(resolve => setTimeout(function () {resolve({data: "dummy"})}, 6000))
+        return new Promise(resolve => setTimeout(function () {resolve({data: "eyJQUk9PRl9JRCI6IkdWcU1oR0RJSzB1ckM2cGxwUS11cWhUcC1taGl6QVpCaEtqdUNIOFU0emRDZTEzeFdER1Y1R1ZON2JkVjMzMlZGbkhKS25FdmRLajZFWDktTjJvUFZKTjljR0M2c3hyNVAybkxRNGcwbTd4cVB2UHQ1SlpQQTl6UURESUxHVGw0RVFESzNSYmpDY3RudWpMek5NVk1Ra3pZalU2SXgwclU0eld1M3dsMlJySVM2WlFDdXBBcG1UU2JUd0J6REtxYkZ1MlZnNnJXZVVaUVltcUJ5aWhERWdobDg1MUVPNVg1R2ZLdGloREV5QmdiR0JCN1NZOUFHdW1XU2x2NGxHRG5BR0NsTUpCWndhVTVFZ3otYzJYbzl5S1dGbU9CazRXeFJjNHM0TU9TU1hVVUw5bi0yTjh3YVhtUWw2RUthTzk3QWhUOHhmZmp0amNuREdWdmlFb2d2YWJqWHFzZHRaS3pueVZraUFlSUhIblB4M1dTeWtMU1FuNkxPeDhmdEhrSER6VUo3NXphX3hTWFF0bDJOWXRwUU1vdmJqbW1QNk40TEMzaE10Smg4Y1dpejkxV2dLbGUtdHJrMzdDOUhhdFdGWGt5WEFzUzh4OUw4RmdZTVFyVHJOdk9rcUxtX2lKYWljMjZWbUpoQVlUSGk0ZUd5ZDNpREhNcjVVRE8zLWNrIiwiSEFTSF9JRCI6Ing3Q2FYazhfR0pLT3lkQjdEV2dvdVhyM2N6UDFja3R4bHpiZnlpNkdGaVE9IiwiQ1VSWUVBUl9JRCI6MjMsIkFHRUdUX0lEIjoyMH0="})}, 6000))
     }
     return new Promise(function(resolve, reject) {
         var i = 0

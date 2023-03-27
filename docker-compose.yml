@@ -1,0 +1,25 @@
+version: '3'
+services:
+  fidoac_app_server:
+    restart: on-failure
+    build:
+      context: fidoac_app_server
+      dockerfile: Dockerfile
+    environment:
+      ENABLE_HTTPS: true
+      FIDOAC_URL: http://fidoac_server:8080
+      RP_ID: localhost
+      ORIGIN_PORT: 8443
+    ports:
+      - 8000:8000
+      - 8443:8443
+  fidoac_server:
+    restart: on-failure
+    build:
+      context: fidoac_server
+      dockerfile: Dockerfile
+
+    ports:
+      - 8080:8080
+
+

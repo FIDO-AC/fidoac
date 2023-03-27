@@ -14,6 +14,7 @@ import dotenv from 'dotenv';
 import base64url from 'base64url';
 import crypto from 'crypto';
 import {FidoACAuthenticationExtensionsClientOutputs, FidoACAuthenticationCredentialJSON} from './extended-dom'
+import {FidoAc} from './fido-ac'
 
 dotenv.config();
 
@@ -48,6 +49,8 @@ const {
   ENABLE_CONFORMANCE,
   ENABLE_HTTPS,
   RP_ID = 'localhost',
+    FIDOAC_URL,
+  ORIGIN_PORT
 } = process.env;
 
 app.use(express.static('./public/'));
@@ -252,14 +255,17 @@ app.post('/verify-authentication', async (req, res) => {
 
   const user = inMemoryUserDeviceDB[loggedInUserId];
 
-  var expectedChallenge = <string>user.currentChallenge;
-  if(body.clientExtensionResults.fidoac){
-    const challengeBuffer = base64url.toBuffer(expectedChallenge)
-    const msgBuffer = new TextEncoder().encode(body.clientExtensionResults.fidoac);
-    const hashBuffer = crypto.createHash('sha256').update(msgBuffer).digest();
-    expectedChallenge = base64url(<Buffer>_appendBuffer(challengeBuffer,hashBuffer))
-  }
-
+  // -------------------FIDO AC CHALLENGE APPENDING--------------
+  let fidoac = new FidoAc(FIDOAC_URL)
+  var expectedChallenge = fidoac.appendToChallenge(<string>user.currentChallenge,body.clientExtensionResults)
+  // var expectedChallenge = <string>user.currentChallenge;
+  // if(body.clientExtensionResults.fidoac){
+  //   const challengeBuffer = base64url.toBuffer(expectedChallenge)
+  //   const msgBuffer = new TextEncoder().encode(body.clientExtensionResults.fidoac);
+  //   const hashBuffer = crypto.createHash('sha256').update(msgBuffer).digest();
+  //   expectedChallenge = base64url(<Buffer>_appendBuffer(challengeBuffer,hashBuffer))
+  // }
+  //---------------------------------------------------------------
 
 
   let dbAuthenticator;
@@ -293,16 +299,28 @@ app.post('/verify-authentication', async (req, res) => {
     return res.status(400).send({ error: _error.message });
   }
 
-  const { verified, authenticationInfo } = verification;
+  let { verified, authenticationInfo } = verification;
 
   if (verified) {
     // Update the authenticator's counter in the DB to the newest count in the authentication
     dbAuthenticator.counter = authenticationInfo.newCounter;
   }
+  // -------------------FIDO AC ZKP VERIFICATION--------------
+  if(body.clientExtensionResults.fidoac){
+    let zkp_verified = await fidoac.verifyZKP(body.clientExtensionResults.fidoac)
+    res.send({
+      verified: verified,
+      zkpVerified: zkp_verified
+    })
+    return
+  }
+
+  // ------------------------------------------------------------
 
   res.send({ verified });
 });
-expectedOrigin = `https://${rpID}`;
+
+expectedOrigin = `https://${rpID}:${ORIGIN_PORT}`;
 if (ENABLE_HTTPS) {
   const host = '0.0.0.0';
   const port = 8443;

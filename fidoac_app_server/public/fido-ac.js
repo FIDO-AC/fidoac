@@ -173,6 +173,7 @@ FidoAC.handleFidoACExtension = async function(arguments) {
         fidoac: acData
     }
     console.log("Replying to Server with acData:" + acData)
+    console.log("Replying to Server with acData:" + res.clientExtensionResults.fidoac)
     document.getElementById("authDebug").innerHTML += res.clientExtensionResults
     return res
 }

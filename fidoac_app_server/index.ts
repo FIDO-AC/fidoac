@@ -320,7 +320,12 @@ app.post('/verify-authentication', async (req, res) => {
   res.send({ verified });
 });
 
-expectedOrigin = `https://${rpID}:${ORIGIN_PORT}`;
+if(ORIGIN_PORT){
+    expectedOrigin = `https://${rpID}:${ORIGIN_PORT}`;
+}else{
+    expectedOrigin = `https://${rpID}`;
+}
+
 if (ENABLE_HTTPS) {
   const host = '0.0.0.0';
   const port = 8443;

@@ -1,5 +1,6 @@
 import base64url from "base64url";
 import crypto from "crypto";
+import fetch from 'node-fetch';
 
 export class FidoAc {
 

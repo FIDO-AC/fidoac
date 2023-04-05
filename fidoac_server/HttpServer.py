@@ -59,21 +59,35 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
             mlog("Snark_Verf Server").info(compltedProcess.stdout)
             # mlog("Snark_Verf Server").error(compltedProcess.stderr)
 
+#             if (compltedProcess.stdout.find("Verified?: true") != -1):
+#                 self.send_response(200)
+#                 self.send_header("Content-type", "text/html")
+#                 self.end_headers()
+#                 self.wfile.write(bytes("<html><head><title>Verified.</title></head><body>is_Verified: True</body></html>","utf-8")) 
+#             elif (compltedProcess.stdout.find("Verified?: false") != -1):
+#                 self.send_response(200)
+#                 self.send_header("Content-type", "text/html")
+#                 self.end_headers()
+#                 self.wfile.write(bytes("<html><head><title>Not Verified.</title></head><body>Not Verified</body></html>","utf-8")) 
+#             else:
+#                 self.send_header("Content-type", "text/html")
+#                 self.end_headers()
+#                 self.wfile.write(bytes("<html><head><title>Error in calling verification program.</title></head><body>Error</body></html>","utf-8")) 
+#                 self.send_response(200)
+
+            response = {}
             if (compltedProcess.stdout.find("Verified?: true") != -1):
-                self.send_response(200)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                self.wfile.write(bytes("<html><head><title>Verified.</title></head><body>is_Verified: True</body></html>","utf-8")) 
+                response["verified"] = True
             elif (compltedProcess.stdout.find("Verified?: false") != -1):
-                self.send_response(200)
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                self.wfile.write(bytes("<html><head><title>Not Verified.</title></head><body>Not Verified</body></html>","utf-8")) 
+                response["verified"] = False
             else:
-                self.send_header("Content-type", "text/html")
-                self.end_headers()
-                self.wfile.write(bytes("<html><head><title>Error in calling verification program.</title></head><body>Error</body></html>","utf-8")) 
-                self.send_response(200)
+                response["error"] = True
+            # send the message back
+            self.send_response(200)
+            self.send_header('Content-Type','application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            
         else:
             print("Invalid URL")
             self.send_header("Content-type", "text/html")

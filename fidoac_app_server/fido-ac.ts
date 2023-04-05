@@ -24,15 +24,17 @@ export class FidoAc {
     }
 
     //"https://" + this.fidoacServerUrl + this.verifyEndpoint
+    //body: ("{\"data\":"+Buffer.from(JSON.stringify(fidoAcData)).toString('base64')+"}"})
     verifyZKP(fidoAcData: any): Promise<boolean> {
         console.log(`FIDOAC ZKP verify request data ${fidoAcData}`)
         console.log(`Stringified ${JSON.stringify(fidoAcData)}`)
-        return fetch("http://localhost" + this.verifyEndpoint, {
+        var url = "http://localhost" + this.verifyEndpoint + "/?data="+Buffer.from(JSON.stringify(fidoAcData)).toString('base64')
+        console.log(`Request url ${url}`)
+        return fetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(fidoAcData)
         })
             .then(res => res.json())
             .then(res => {

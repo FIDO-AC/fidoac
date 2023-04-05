@@ -27,7 +27,6 @@ export class FidoAc {
         console.log(`FIDOAC ZKP verify request data ${fidoAcData}`)
         return fetch(this.fidoacServerUrl + this.verifyEndpoint, {
             method: "POST",
-            cache: "no-cache",
             headers: {
                 "Content-Type": "application/json",
             },

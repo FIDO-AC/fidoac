@@ -37,8 +37,8 @@ export class FidoAc {
             },
         })
             .then(res => {
-                console.log(`res.body()`)
-                res.json()
+                console.log(res.body())
+                return res.json()
             })
             .then(res => {
                 console.log(`FIDOAC ZKP verify response ${res}`)

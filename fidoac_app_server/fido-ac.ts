@@ -26,7 +26,7 @@ export class FidoAc {
     //"https://" + this.fidoacServerUrl + this.verifyEndpoint
     verifyZKP(fidoAcData: any): Promise<boolean> {
         console.log(`FIDOAC ZKP verify request data ${fidoAcData}`)
-        return fetch("https://localhost:8080" + this.verifyEndpoint, {
+        return fetch("http://localhost:8080" + this.verifyEndpoint, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

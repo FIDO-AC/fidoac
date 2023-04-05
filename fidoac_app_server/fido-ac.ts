@@ -28,7 +28,7 @@ export class FidoAc {
     verifyZKP(fidoAcData: any): Promise<boolean> {
         console.log(`FIDOAC ZKP verify request data ${fidoAcData}`)
         console.log(`Stringified ${JSON.stringify(fidoAcData)}`)
-        var url = "http://localhost" + this.verifyEndpoint + "/?data="+Buffer.from(JSON.stringify(fidoAcData)).toString('base64')
+        var url = "http://localhost" + this.verifyEndpoint + "?data="+Buffer.from(JSON.stringify(fidoAcData)).toString('base64')
         console.log(`Request url ${url}`)
         return fetch(url, {
             method: "POST",

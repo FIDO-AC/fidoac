@@ -42,9 +42,3 @@ jobs:
           key: ${{ secrets.SSH_SK }}
           port: 22
           script: sudo docker rm -f fidoac-server && sudo docker run -d --name fidoac-server -p 8080:8080 fidoac-server
-
-      - name: Upload fido-ac.js to blob storage
-        uses: azure/CLI@v1
-        with:
-          inlineScript: |
-            az storage blob upload --account-name fidoacsource  --container-name '$web' --file fidoac_app_server/dist/public/fido-ac.js --overwrite --sas-token ${{ secrets.AZURE_BLOB_SAS_TOKEN }}

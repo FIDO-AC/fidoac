@@ -100,24 +100,73 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
             ctype, pdict = cgi.parse_header(self.headers.get('content-type'))
 
             # refuse to receive non-json content
-            if ctype != 'application/json':
-                self.send_response(400)
-                self.end_headers()
-                return
+#             if ctype != 'application/json':
+#                 self.send_response(400)
+#                 self.end_headers()
+#                 return
 
-            # read the message and convert it into a python dictionary
-            length = int(self.headers.get('content-length'))
-            message = json.loads(self.rfile.read(length))
+#             # read the message and convert it into a python dictionary
+#             length = int(self.headers.get('content-length'))
+#             message = json.loads(self.rfile.read(length))
 
-            mlog("Snark_Verf Server").info(message["data"])
+#             mlog("Snark_Verf Server").info(message["data"])
 
-            json_bytes = base64.urlsafe_b64decode(message["data"])
+#             json_bytes = base64.urlsafe_b64decode(message["data"])
+#             data_string_json = (json_bytes).decode("utf-8")
+#             mlog("Snark_Verf Server").info(data_string_json)
+
+#             compltedProcess = self.verify_zkp(data_string_json)
+
+#             mlog("Snark_Verf Server").info(compltedProcess.stdout)
+#             response = {}
+#             if (compltedProcess.stdout.find("Verified?: true") != -1):
+#                 response["verified"] = True
+#             elif (compltedProcess.stdout.find("Verified?: false") != -1):
+#                 response["verified"] = False
+#             else:
+#                 response["error"] = True
+#             # send the message back
+#             self.send_response(200)
+#             self.send_header('Content-Type','application/json')
+#             self.end_headers()
+#             self.wfile.write(json.dumps(response).encode('utf-8'))
+
+            parsed_url = urlparse(self.path)
+            query_dict= dict(parse_qs(parsed_url.query))
+            mlog("Snark_Verf Server").info((query_dict["data"])[0])
+
+            json_bytes = base64.urlsafe_b64decode((query_dict["data"])[0])
             data_string_json = (json_bytes).decode("utf-8")
             mlog("Snark_Verf Server").info(data_string_json)
 
-            compltedProcess = self.verify_zkp(data_string_json)
+            fileoffset = random.randint(0, 999999999)
+            tempfilename = '/app/inputfile' + str(fileoffset) + ".json"
+            with open(tempfilename, 'w') as file: 
+                file.write(data_string_json)
+            
+            compltedProcess = subprocess.run(["/app/fidoac_zksnark_verf", "/app/verificationkey", tempfilename], capture_output=True, text=True)
+            subprocess.run(["rm", tempfilename])
 
+            # mlog("Snark_Verf Server").info(compltedProcess.returncode)
             mlog("Snark_Verf Server").info(compltedProcess.stdout)
+            # mlog("Snark_Verf Server").error(compltedProcess.stderr)
+
+#             if (compltedProcess.stdout.find("Verified?: true") != -1):
+#                 self.send_response(200)
+#                 self.send_header("Content-type", "text/html")
+#                 self.end_headers()
+#                 self.wfile.write(bytes("<html><head><title>Verified.</title></head><body>is_Verified: True</body></html>","utf-8")) 
+#             elif (compltedProcess.stdout.find("Verified?: false") != -1):
+#                 self.send_response(200)
+#                 self.send_header("Content-type", "text/html")
+#                 self.end_headers()
+#                 self.wfile.write(bytes("<html><head><title>Not Verified.</title></head><body>Not Verified</body></html>","utf-8")) 
+#             else:
+#                 self.send_header("Content-type", "text/html")
+#                 self.end_headers()
+#                 self.wfile.write(bytes("<html><head><title>Error in calling verification program.</title></head><body>Error</body></html>","utf-8")) 
+#                 self.send_response(200)
+
             response = {}
             if (compltedProcess.stdout.find("Verified?: true") != -1):
                 response["verified"] = True

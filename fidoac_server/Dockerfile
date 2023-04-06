@@ -12,6 +12,7 @@ RUN `cd /app/rust/ ; cargo build --bins --release`
 RUN cp /app/rust/target/release/rust /app/fidoac_zksnark_verf
 COPY rust/verificationkey /app/verificationkey
 COPY rust/sample_input.json /app/sample_input.json
+RUN apt update -y
 RUN apt install python3 -y
 COPY HttpServer.py /app/HttpServer.py
 COPY entrypoint.sh /app/entrypoint.sh

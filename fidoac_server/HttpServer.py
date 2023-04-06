@@ -79,17 +79,18 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
             self.send_response(404)
 
     def do_POST(self):
+        mlog("Snark_Verf Server").info("New POST Request")
+        parsed_url = urlparse(self.path)
+        mlog("Snark_Verf Server").info(parsed_url)
         if self.path.startswith("/fidoac-server/verify"):
-            mlog("Snark_Verf Server").info("New Post Request")
-            parsed_url = urlparse(self.path)
-            mlog("Snark_Verf Server").info(parsed_url)
-        
             ctype, pdict = cgi.parse_header(self.headers.get('content-type'))
+            
+            content_len = int(self.headers.get('Content-Length'))
+            post_body = self.rfile.read(content_len)
 
-            query_dict= dict(parse_qs(parsed_url.query))
-            mlog("Snark_Verf Server").info((query_dict["data"])[0])
+            mlog("Snark_Verf Server").info(post_body)
 
-            json_bytes = base64.urlsafe_b64decode((query_dict["data"])[0])
+            json_bytes = base64.urlsafe_b64decode(post_body)
             data_string_json = (json_bytes).decode("utf-8")
             mlog("Snark_Verf Server").info(data_string_json)
 

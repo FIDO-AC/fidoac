@@ -4,6 +4,7 @@ RUN apt update -y
 RUN apt install build-essential -y
 RUN apt install curl -y
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN apt update -y
 RUN apt install python3 -y
 RUN mkdir /result
 RUN mkdir /app

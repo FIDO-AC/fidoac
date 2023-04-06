@@ -38,7 +38,7 @@ fn parse_fidoac_json(json_string: &str) -> (Vec<u8>,Vec<u8>,u8,u8){
         (proof_bytes, digest_bytes, age_gt2, cur_year2)
     }
     else{
-        (proof_bytes, digest_bytes, age_gt as u8, cur_year as u8)
+        (proof_bytes, digest_bytes, age_gt.unwrap() as u8, cur_year.unwrap() as u8)
     }
 }
 

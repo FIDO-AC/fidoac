@@ -90,7 +90,7 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
 
             mlog("Snark_Verf Server").info(post_body)
 
-            #data_string_json = (json_bytes).decode("utf-8")
+            data_string_json = (post_body).decode("utf-8")
             mlog("Snark_Verf Server").info(data_string_json)
 
             fileoffset = random.randint(0, 999999999)

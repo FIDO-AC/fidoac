@@ -75,5 +75,4 @@ fn main() {
     let  (proof_bytes, digest_bytes,age_gt,cur_year) = parse_fidoac_json(&json_string);
 
     let _is_verified = verify_proof(vk_bytes, proof_bytes, digest_bytes, age_gt, cur_year);
-    println!("Verified?: {}",_is_verified);
 }

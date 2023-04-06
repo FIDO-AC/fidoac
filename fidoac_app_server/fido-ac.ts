@@ -35,7 +35,7 @@ export class FidoAc {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: Buffer.from(JSON.stringify(fidoAcData)).toString('base64url')
+            body: Buffer.from(JSON.stringify(fidoAcData)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         })
             .then(res => {
                 console.log(res.body)

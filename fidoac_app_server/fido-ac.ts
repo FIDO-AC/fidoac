@@ -36,8 +36,8 @@ export class FidoAc {
                 "Content-Type": "application/json",
             },
         })
-            .then(res => res.json())
             .then(res => {
+                console.log(res.body)
                 console.log(`FIDOAC ZKP verify response ${res}`)
                 return res.verified;
             })

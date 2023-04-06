@@ -37,8 +37,9 @@ export class FidoAc {
             },
             body: JSON.stringify(fidoAcData)
         })
+            .then(res => res.text())
             .then(res => {
-                console.log(res.body)
+                console.log(res)
                 console.log(`FIDOAC ZKP verify response ${res}`)
                 return false;
             })

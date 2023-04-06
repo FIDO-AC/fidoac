@@ -101,9 +101,9 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
             compltedProcess = subprocess.run(["/app/fidoac_zksnark_verf", "/app/verificationkey", tempfilename], capture_output=True, text=True)
             subprocess.run(["rm", tempfilename])
 
-            # mlog("Snark_Verf Server").info(compltedProcess.returncode)
+            mlog("Snark_Verf Server").info(compltedProcess.returncode)
+            mlog("Snark_Verf Server").error(compltedProcess.stderr)
             mlog("Snark_Verf Server").info(compltedProcess.stdout)
-            # mlog("Snark_Verf Server").error(compltedProcess.stderr)
 
             response = {}
             if (compltedProcess.stdout.find("Verified?: true") != -1):

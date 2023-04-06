@@ -35,6 +35,7 @@ export class FidoAc {
             headers: {
                 "Content-Type": "application/json",
             },
+            disableEncoding: true
         })
             .then(res => {
                 console.log(res.body)

@@ -26,13 +26,20 @@ use base64::{engine, alphabet, Engine as _};
 fn parse_fidoac_json(json_string: &str) -> (Vec<u8>,Vec<u8>,u8,u8){
     // Parse the string of data into serde_json::Value.
     let v: Value = serde_json::from_str(json_string).unwrap();
-    println!("serde_json_value:{:?}",v);
+    //println!("serde_json_value:{:?}",v);
     let proof_bytes = engine::general_purpose::URL_SAFE.decode(v[PROOF_ID].as_str().unwrap()).unwrap();
     let digest_bytes = engine::general_purpose::URL_SAFE.decode(v[HASH_ID].as_str().unwrap()).unwrap();
-    let age_gt = v[AGEGT_ID].as_u64().unwrap();
-    let cur_year = v[CURYEAR_ID].as_u64().unwrap();
+    let age_gt = v[AGEGT_ID].as_u64();
+    let cur_year = v[CURYEAR_ID].as_u64();
+    if age_gt == None || cur_year ==None {
+        let age_gt2 = v[AGEGT_ID].as_str().unwrap().parse::<u8>();
+        let cur_year2 = v[CURYEAR_ID].as_str().unwrap().parse::<u8>();
 
-    (proof_bytes, digest_bytes, age_gt as u8, cur_year as u8)
+        (proof_bytes, digest_bytes, age_gt2, cur_year2)
+    }
+    else{
+        (proof_bytes, digest_bytes, age_gt as u8, cur_year as u8)
+    }
 }
 
 fn verify_proof(vk_bytes: Vec<u8>, proof_bytes:Vec<u8>, randomized_digest_hash:Vec<u8>, age_gt:u8, cur_year:u8) -> bool{
@@ -72,7 +79,7 @@ fn main() {
     let mut json_string: String = String::new();
     file.read_to_string(&mut json_string).unwrap();
     // let mut json_string = &args[2];
-    println!("json_string:{}",json_string);
+    //println!("json_string:{}",json_string);
     let  (proof_bytes, digest_bytes,age_gt,cur_year) = parse_fidoac_json(&json_string);
 
     let _is_verified = verify_proof(vk_bytes, proof_bytes, digest_bytes, age_gt, cur_year);

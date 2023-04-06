@@ -35,7 +35,7 @@ export class FidoAc {
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(fidoAcData))
+            body: JSON.stringify(fidoAcData)),
         })
             .then(res => {
                 console.log(res.body)

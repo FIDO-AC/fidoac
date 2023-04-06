@@ -32,8 +32,8 @@ fn parse_fidoac_json(json_string: &str) -> (Vec<u8>,Vec<u8>,u8,u8){
     let age_gt = v[AGEGT_ID].as_u64();
     let cur_year = v[CURYEAR_ID].as_u64();
     if age_gt == None || cur_year ==None {
-        let age_gt2 = v[AGEGT_ID].as_str().unwrap().parse::<u8>();
-        let cur_year2 = v[CURYEAR_ID].as_str().unwrap().parse::<u8>();
+        let age_gt2 = v[AGEGT_ID].as_str().unwrap().parse::<u8>().unwrap();
+        let cur_year2 = v[CURYEAR_ID].as_str().unwrap().parse::<u8>().unwrap();
 
         (proof_bytes, digest_bytes, age_gt2, cur_year2)
     }

@@ -41,7 +41,7 @@ export class FidoAc {
             .then(res => {
                 console.log(res)
                 console.log(`FIDOAC ZKP verify response ${res}`)
-                return false;
+                return res.verified;
             })
             .catch(e => {
                 console.log(e)

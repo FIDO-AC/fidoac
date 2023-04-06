@@ -31,7 +31,7 @@ export class FidoAc {
         var url = "http://localhost" + this.verifyEndpoint + "?data="+Buffer.from(JSON.stringify(fidoAcData)).toString('base64')
         //console.log(`Request url ${url}`)
         return fetch(url, {
-            method: "POST",
+            method: "GET",
             headers: {
                 "Content-Type": "application/json",
             },

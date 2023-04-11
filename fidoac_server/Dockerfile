@@ -19,6 +19,8 @@ RUN pip install cryptography
 RUN pip install asn1crypto
 RUN pip install asn1
 RUN pip install pem
+COPY MediatorVerifier.py /app/MediatorVerifier.py
+COPY mediator_cert.pem mediator_cert.pem
 COPY HttpServer.py /app/HttpServer.py
 COPY entrypoint.sh /app/entrypoint.sh
 ENTRYPOINT /app/entrypoint.sh

@@ -10,6 +10,7 @@ import random
 import os
 import json
 import cgi
+import MediatorVerifier
 
 hostName = "0.0.0.0"
 serverPort = 8080
@@ -107,7 +108,10 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
 
             response = {}
             if (compltedProcess.stdout.find("Verified?: true") != -1):
-                response["verified"] = True
+                if MediatorVerifier.verify_mediator(data_string_json) == True:
+                    response["verified"] = True
+                else:
+                    response["verified"] = False
             elif (compltedProcess.stdout.find("Verified?: false") != -1):
                 response["verified"] = False
             else:

@@ -14,6 +14,10 @@ RUN `cd /app/rust/ ; cargo build --bins --release`
 RUN cp /app/rust/target/release/rust /app/fidoac_zksnark_verf
 COPY rust/verificationkey /app/verificationkey
 COPY rust/sample_input.json /app/sample_input.json
+RUN pip install cryptography
+RUN pip install asn1crypto
+RUN pip install asn1
+RUN pip install pem
 COPY HttpServer.py /app/HttpServer.py
 COPY entrypoint.sh /app/entrypoint.sh
 ENTRYPOINT /app/entrypoint.sh

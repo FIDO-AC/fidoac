@@ -108,7 +108,7 @@ class MyServer(http.server.SimpleHTTPRequestHandler):
 
             response = {}
             if (compltedProcess.stdout.find("Verified?: true") != -1):
-                if MediatorVerifier.verify_mediator(data_string_json) == True:
+                if (MediatorVerifier.verify_mediator(data_string_json) == True):
                     response["verified"] = True
                 else:
                     response["verified"] = False

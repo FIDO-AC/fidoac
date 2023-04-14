@@ -50,7 +50,7 @@ The expected mediator signing key for the APK is also provided and already preco
 Prerequisites:
 - Android SDK, NDK
 - Rust
-- Setup for Rust toolchain for Android. See https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-21-rust-on-android.html
+- Setup for Rust toolchain for Android. See [Mozilla - Building and Deploying a Rust library on Android](https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-21-rust-on-android.html).
 
 1) Build Rust Code to lib.so
 ```

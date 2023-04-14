@@ -3,9 +3,6 @@ use digest::consts::False;
 use log::*;
 
 
-//TODO ICAO MasterList -> Test for equality to the MasterList included in assets/masterList
-// Check Apple Attestation? : https://developer.apple.com/documentation/devicecheck/dcappattestservice
-
 pub fn get_mod_name() -> String {
   "zkpmain".to_string()
 }
@@ -301,8 +298,8 @@ pub fn fidoac_prove_main(prov_key_raw: Vec<u8>, verf_key_raw: Vec<u8>, dg1: Vec<
     );
     debug!("Asserting Preimage Complete");
 
-    // let (pk_raw, vk_raw) = generate_keys(); //TODO disable
-    // let (pk, vk)= parse_keys(pk_raw, vk_raw); //TODO disable
+    // let (pk_raw, vk_raw) = generate_keys(); //Debug use only
+    // let (pk, vk)= parse_keys(pk_raw, vk_raw); // Debug use only
     let (pk, vk)= parse_keys(prov_key_raw, verf_key_raw); 
     debug!("Parsed Key Complete");
 

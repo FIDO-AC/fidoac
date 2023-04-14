@@ -22,7 +22,9 @@ The diagram below presents the interactions between elements of the system.
 ## FIDO-AC core elements
 
 ### fidoac_andoridapp
-//TODO
+The fidoac_androidapp implements
+- BAC/PACE for the ICAO eID and Mediator in [EIDInterface.kt](fidoac_androidapp/app/src/main/java/anon/fidoac/EIDInterface.kt).
+- ZKProof of Attribute in [lib.rs](fidoac_androidapp/rust/src/lib.rs) and [zkpmain.rs](fidoac_androidapp/rust/src/zkp/zkpmain.rs).
 
 ### fido_app_server
 The fido_app_server implements a standard FIDO2 server extended with FIDO-AC functionalities to trigger fido-ac extension and run the verification against FIDO-AC Server 
@@ -33,6 +35,7 @@ Additionally, the server publishes a [fido-ac.js](fidoac_app_server/public/fido-
 ### fidoac_server
 The fidoac_server implements ZKP verification and publishing CRS. The source code for ZKP operations can be found in [main.rs](fidoac_server/rust/src/main.rs).
 The rust code is wrapped in the HTTP server. 
+The local mediator verification can be found in [MediatorVerifier.py](fidoac_server/MediatorVerifier.py). 
 
 ## Getting started
 The fidoac_app_server and fidoac_server applications can be easily started using docker-compose.yml file
@@ -40,7 +43,9 @@ The fidoac_app_server and fidoac_server applications can be easily started using
 docker compose up
 ```
 
-//TODO Android install instructions
+Building Android App
+Prerequisites:
+
 
 
 ## User journey in the FIDO-AC system

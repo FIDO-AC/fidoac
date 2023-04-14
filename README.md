@@ -38,15 +38,31 @@ The rust code is wrapped in the HTTP server.
 The local mediator verification can be found in [MediatorVerifier.py](fidoac_server/MediatorVerifier.py). 
 
 ## Getting started
+### Building Server App
 The fidoac_app_server and fidoac_server applications can be easily started using docker-compose.yml file
 ```
 docker compose up
 ```
 
-Building Android App
+### Building Android App
+The expected mediator signing key for the APK is also provided and already preconfigured in build.gradle. 
+
 Prerequisites:
+- Android SDK, NDK
+- Rust
+- Setup for Rust toolchain for Android. See https://mozilla.github.io/firefox-browser-architecture/experiments/2017-09-21-rust-on-android.html
 
+1) Build Rust Code to lib.so
+```
+./gradlew cargoBuild
+```
 
+2) Build Android Code to APK
+```
+./gradlew assembleDebug
+```
+
+3) Install APK
 
 ## User journey in the FIDO-AC system
 Below, we present the interaction diagram for the FIDO process enchanced with the FIDO-AC elements.

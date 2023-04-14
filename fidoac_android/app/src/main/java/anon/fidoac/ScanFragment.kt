@@ -17,6 +17,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.fragment.app.Fragment
 import androidx.vectordrawable.graphics.drawable.Animatable2Compat
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
+import anon.fidoac.certverifier.AndroidKeyAttestationVerifier
 import anon.fidoac.databinding.FragmentScanBinding
 import anon.fidoac.service.FIDOACService
 import com.google.android.material.tabs.TabLayout
@@ -24,14 +25,15 @@ import org.jmrtd.BACKey
 import org.jmrtd.BACKeySpec
 import org.jmrtd.PACEKeySpec
 import java.io.ByteArrayInputStream
-import java.io.InputStream
 import java.security.GeneralSecurityException
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.security.cert.Certificate
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.util.*
-import kotlin.math.sign
+import kotlin.collections.ArrayList
+import kotlin.system.measureTimeMillis
 
 //TODO display information about incoming stuff
 
@@ -138,6 +140,13 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
 
     override fun onResume() {
         super.onResume()
+
+        this.binding.textviewOrigin.text = (this.requireActivity() as MainActivity).origin
+        this.binding.textviewRequest.text = (this.requireActivity() as MainActivity).request
+
+        if (this.binding.textviewOrigin.text!="None" && this.binding.textviewRequest.text!="None"){
+            this.binding.instructionInfo.text= "Tap Confirm to continue."
+        }
     }
 
     override fun onPause() {
@@ -237,7 +246,7 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
         mIntent.putStringArrayListExtra(FileManager.MEDIATOR_CERT_ID, certBase64Array)
         this.requireActivity().startService(mIntent)
 
-        //TODO have the response back from server and so on, and close the app
+        this.requireActivity().finish()
     }
 
 
@@ -267,6 +276,15 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             val (signature, cert) = this.stateBasket.eidInterface!!.runReadPassportAndMediatorAttestation()
             stateBasket.mediator_sign = signature
             stateBasket.mediator_cert = cert
+
+//            var cert_arr = ArrayList<X509Certificate>()
+//            for (i in 0..cert.size-1){
+//                val cf = CertificateFactory.getInstance("X.509")
+//                val certificate: X509Certificate = cf.generateCertificate(ByteArrayInputStream(cert[i])) as X509Certificate
+//                cert_arr.add(certificate)
+//            }
+//            AndroidKeyAttestationVerifier.verify(cert_arr.toArray(arrayOf<X509Certificate>()))
+
             Log.d(TAG,"Mediator Completed")
             stopScanning()
 
@@ -274,7 +292,6 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             val ranomizedHash = MessageDigest.getInstance("SHA-256").digest(stateBasket.sodFile!!.dataGroupHashes[1]!! + stateBasket.client_challenge!!)
             stateBasket.ranomized_hash = ranomizedHash
 
-            //TODO port this part
             Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toHex())
             Log.d(TAG,"DG1 Raw Byte:" + stateBasket.dg1_raw!!.toString(Charsets.US_ASCII))
             Log.d(TAG,"DG1 Raw Byte Length:" + stateBasket.dg1_raw!!.size)
@@ -286,9 +303,17 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
             this.stateBasket.cur_year= cur_year
             val (pk,vk) = FileManager.Companion.loadPVKeys()!!
             val mainAct = (this.requireActivity() as MainActivity)
-            mainAct.rust_fidoacprove(this.requireActivity(),pk,vk,stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_min, cur_year)
+            var provebench_threshold = 1
+            val execution_timearr = ArrayList<Long>()
+            while (provebench_threshold > 0){
+                val executionTime = measureTimeMillis {
+                    mainAct.rust_fidoacprove(this.requireActivity(),pk,vk,stateBasket.dg1_raw!!, stateBasket.client_challenge!!, age_min, cur_year)
+                }
+                execution_timearr.add(executionTime)
+                provebench_threshold-=1
+            }
+            Log.d(TAG,execution_timearr.toString())
             stateBasket.proof_data = mainAct.getProof()
-//            Log.d(TAG,"Server Mock Verification (For testing) Completed")
 
             benchmarkCounter+=1
             if (benchmarkCounter <benchmarkThreshold){

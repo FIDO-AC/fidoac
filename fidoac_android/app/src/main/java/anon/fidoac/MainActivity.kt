@@ -24,16 +24,25 @@ class MainActivity : AppCompatActivity(), RustCallBack {
     private var is_insession:Boolean = false
     private var is_rustinit:Boolean = false
     public var session_server_challenge:ByteArray? = null
+    var origin = "None"
+    var request = "None"
+
     override fun onStart() {
         super.onStart()
 
         //Try to parse challenge. Challenge is passed by calling the application. OnStart let us parse when app resumed/created.
         val challenge = this.intent?.data?.getQueryParameter("challenge")
-        if (challenge != null && !is_insession) {
+        val received_origin = this.intent?.data?.getQueryParameter("origin")
+        val received_request = "Age>=" + this.intent?.data?.getQueryParameter("ageQueryGT")
+
+        if (challenge != null  && !is_insession  && received_origin!=null && received_request!=null) {
             Log.d(TAG,challenge)
             val decodedChallengeByteArray: ByteArray =
-                Base64.getDecoder().decode(challenge)
+                Base64.getUrlDecoder().decode(challenge)
+            Log.d(TAG,  Base64.getEncoder().encodeToString(decodedChallengeByteArray))
             session_server_challenge = decodedChallengeByteArray
+            this.origin = received_origin
+            this.request = received_request
             is_insession = true
         } else {
             Log.i("FIDOAC", "Challenge not found")

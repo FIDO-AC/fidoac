@@ -7,7 +7,10 @@ In rustroot ():
 Build ServerBinary
 cargo build --bins --release
 
-cargo run --release verificationkey sample_input.json 
+cargo run --release rust 
 
 Run Tests
 cargo test -- --nocapture
+
+
+btoa(challenge).replaceAll("+","-").replaceAll("/","_")

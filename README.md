@@ -1,12 +1,50 @@
 # FIDO-AC
 
-This repository provides FIDO-AC, an unoptimized proof-of-concept implementation prototype for the framework described in the Fast IDentity Online with Anonymous Credentials (FIDO-AC) paper.
-Listed below are summaries of each implemented component and simple flowchart depicting the typical flow of the FIDO-AC system.
+This repository provides an implementation for the FIDO-AC system, an unoptimized proof-of-concept implementation prototype for the framework described in the Fast IDentity Online with Anonymous Credentials (FIDO-AC) paper [link]().
 
-Description of Different Components
+## System design
+
+Elements of the system:
+* Mobile application (Android)
+* FIDO-AC javascript that intercepts calls to navigator object
+* FIDO server
+* FIDO-AC server
+
+The diagram below presents the interactions between elements of the system.
+<img src="img/FIDO-AC.png" width="500" height="300">
+
+## Repositories
+
 1) fidoac_androidapp : Android Application implementing the BAC/PACE, the ZK-Proof of the eID attribute and the local mediator.
-2) fidoac_app_server: Relying Party's Server, verify FIDO.
-3) fidoac_server: Verification of additional components (ZKProof and mediator).
+2) fidoac_app_server: Relying Party's FIDO Server, implemenetion based on [simplewebauthn server](https://github.com/MasterKale/SimpleWebAuthn/tree/master/packages/server#) 
+3) fidoac_server: Web server for FIDO-AC verification (ZKProof and mediator).
+
+## FIDO-AC core elements
+
+### fidoac_andoridapp
+//TODO
+
+### fido_app_server
+The fido_app_server implements a standard FIDO2 server extended with FIDO-AC functionalities to trigger fido-ac extension and run the verification against FIDO-AC Server 
+The FIDO-AC extension code can be found in [fido-ac.ts file](fidoac_app_server/fido-ac.ts)
+
+Additionally, the server publishes a [fido-ac.js](fidoac_app_server/public/fido-ac.js) which is responsible for intercepting FIDO calls and forwarding them to FIDO-AC application.
+
+### fidoac_server
+The fidoac_server implements ZKP verification and publishing CRS. The source code for ZKP operations can be found in [main.rs](fidoac_server/rust/src/main.rs).
+The rust code is wrapped in the HTTP server. 
+
+## Getting started
+The fidoac_app_server and fidoac_server applications can be easily started using docker-compose.yml file
+```
+docker compose up
+```
+
+//TODO Android install instructions
+
+
+## User journey in the FIDO-AC system
+Below, we present the interaction diagram for the FIDO process enchanced with the FIDO-AC elements.
 
 ![fidoac_simplified_impl_dia drawio](https://user-images.githubusercontent.com/13492945/232001458-3bf2bbe5-2738-4a8a-b926-86ec6210a9cc.svg)
 

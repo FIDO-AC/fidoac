@@ -35,7 +35,6 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.system.measureTimeMillis
 
-//TODO display information about incoming stuff
 
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
 private const val ARG_PARAM1 = "param1"
@@ -225,7 +224,6 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
 
     //Send reject information back to browser
     private fun rejectAndSendDataBack(){
-        //TODO have a server to send back data to.
 
         exit()
     }
@@ -335,7 +333,6 @@ class ScanFragment : Fragment(), NfcAdapter.ReaderCallback{
          * @param param2 Parameter 2.
          * @return A new instance of fragment ScanFragment.
          */
-        // TODO: Rename and change types and number of parameters
         @JvmStatic
         fun newInstance(param1: String, param2: String) =
             ScanFragment().apply {

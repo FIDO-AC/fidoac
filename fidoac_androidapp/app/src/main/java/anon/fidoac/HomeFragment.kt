@@ -93,11 +93,11 @@ class HomeFragment : Fragment() {
         myscan.mtab_layout = tabs
         adapter.addFragment(myscan,getString(R.string.Scan_fragment_text))
         adapter.addFragment(mydf, getString(R.string.Data_fragment_text))
-        adapter.addFragment(TutorialFragment(), getString(R.string.Tutorial_fragment_text))
+//        adapter.addFragment(TutorialFragment(), getString(R.string.Tutorial_fragment_text))
         adapter.notifyDataSetChanged()
         viewpagger.adapter =adapter
 
-        val tabTitles = arrayOf("Scan", "Data", "Tutorial") //put titles based on your need
+        val tabTitles = arrayOf("Scan", "Data") //put titles based on your need
         val tabIcons = intArrayOf(R.drawable.ic_baseline_document_scanner_24, R.drawable.ic_baseline_edit_note_24, R.drawable.ic_baseline_help_24)
 
         TabLayoutMediator(tabs, viewpagger) { tab, position ->

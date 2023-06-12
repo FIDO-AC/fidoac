@@ -1,6 +1,6 @@
 # FIDO-AC
 
-This repository provides an implementation for the FIDO-AC system, an unoptimized proof-of-concept implementation prototype for the framework described in the Fast IDentity Online with Anonymous Credentials (FIDO-AC) paper [link]().
+This repository provides an implementation for the FIDO-AC system, an unoptimized proof-of-concept implementation prototype for the framework described in the Fast IDentity Online with Anonymous Credentials (FIDO-AC) paper [link](http://arxiv.org/abs/2305.16758).
 
 ## System design
 
